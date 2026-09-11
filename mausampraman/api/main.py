@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -35,9 +35,13 @@ def health():
 @app.post("/ask")
 def ask(body: AskIn):
     lang = body.lang if body.lang in ("en", "hi") else "en"
-    location = geocode(body.query)
-    forecast = get_forecast(location["lat"], location["lon"])
-    warning = get_warning(location["lat"], location["lon"])
+    coords = geocode(body.query)
+    if coords is None:
+        raise HTTPException(status_code=404, detail="location not found")
+    lat, lon = coords
+    location = {"name": (body.query or "").strip() or "Unknown", "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
+    forecast = get_forecast(lat, lon)
+    warning = get_warning(lat, lon)
     divergence = get_divergence_scenario(forecast)
     confidence = grade(forecast, warning, divergence)  # deterministic, LLM never touches
     advisory = get_advisory(body.crop, forecast, warning, confidence)

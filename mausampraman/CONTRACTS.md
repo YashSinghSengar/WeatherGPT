@@ -1,10 +1,10 @@
-# Contracts (frozen v0)
+# Contracts (frozen v1)
 
 Solo project. No module owners.
 
 ## Functions
 
-- `geocode(place: str) -> {name, lat, lon, state, country}`
+- `geocode(place) -> (lat, lon) tuple | None` (None = no results; `"nashik_coastal_test"` returns Nashik stub coords without network)
 - `get_forecast(lat, lon) -> {temp_c, humidity_pct, wind_kph, precip_mm, condition, source, lat, lon}`
 - `get_warning(lat, lon) -> {level: none|watch|alert, headline, source}`
 - `get_divergence_scenario(forecast?) -> {spread_c, scenario, source}`

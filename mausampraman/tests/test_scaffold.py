@@ -30,11 +30,12 @@ def test_stubs():
     from advisory.engine import get_advisory
     from phrasing.templates import phrase
 
-    loc = geocode("Nashik")
-    f = get_forecast(loc["lat"], loc["lon"])
-    w = get_warning(loc["lat"], loc["lon"])
+    loc = geocode("nashik_coastal_test")
+    lat, lon = loc
+    f = get_forecast(lat, lon)
+    w = get_warning(lat, lon)
     dv = get_divergence_scenario(f)
     conf = grade(f, w, dv)
     adv = get_advisory("grape", f, w, conf)
-    txt = phrase(adv, f, w, conf, loc, "en")
+    txt = phrase(adv, f, w, conf, {"name": "Nashik"}, "en")
     assert ground_check(txt, f, w)["grounded"]

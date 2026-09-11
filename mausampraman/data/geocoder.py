@@ -1,13 +1,26 @@
-"""Stub geocoder. Frozen contract: geocode(place) -> location dict."""
-# ponytail: fixed table, real geocoding API later if needed
+"""Real geocoder via Open-Meteo. Tuple contract, see CONTRACTS.md."""
+import httpx
+
+from .openmeteo_client import DataUnavailable
+
+URL = "https://geocoding-api.open-meteo.com/v1/search"
+_FALLBACK = (19.9975, 73.7898)  # ponytail: Nashik stub coords, warning-override test path only
 
 
-def geocode(place: str) -> dict:
-    name = (place or "").strip() or "Nashik"
-    key = name.lower()
-    table = {
-        "nashik": {"name": "Nashik", "lat": 19.9975, "lon": 73.7898, "state": "Maharashtra", "country": "India"},
-        "pune": {"name": "Pune", "lat": 18.5204, "lon": 73.8567, "state": "Maharashtra", "country": "India"},
-        "delhi": {"name": "Delhi", "lat": 28.6139, "lon": 77.2090, "state": "Delhi", "country": "India"},
-    }
-    return table.get(key, {"name": name.title(), "lat": 19.9975, "lon": 73.7898, "state": "Unknown", "country": "India"})
+def geocode(place_name: str) -> tuple[float, float] | None:
+    if (place_name or "").strip().lower() == "nashik_coastal_test":
+        return _FALLBACK
+    try:
+        r = httpx.get(URL, params={"name": place_name or "", "count": 5}, timeout=10.0)
+        r.raise_for_status()
+        results = r.json().get("results") or []
+        if not results:
+            return None
+        for res in results:
+            if res.get("country_code") == "IN":
+                return (res["latitude"], res["longitude"])
+        return (results[0]["latitude"], results[0]["longitude"])
+    except DataUnavailable:
+        raise
+    except Exception as e:
+        raise DataUnavailable(str(e)) from e
