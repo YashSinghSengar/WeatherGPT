@@ -1,0 +1,11 @@
+crop: grape
+version: 0
+rules:
+  - id: heat_watch
+    when: temp_c >= 35
+    advice_en: "High heat. Irrigate early morning. Avoid pesticide spray midday."
+    advice_hi: "तेज गर्मी। सुबह सिंचाई करें। दोपहर में छिड़काव न करें।"
+  - id: default
+    when: true
+    advice_en: "Weather normal for grapes. Maintain routine canopy care."
+    advice_hi: "अंगूर के लिए मौसम सामान्य। नियमित देखभाल जारी रखें।"
