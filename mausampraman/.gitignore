@@ -5,3 +5,9 @@ node_modules/
 data/.cache/*
 !data/.cache/.gitkeep
 .env
+# Local tracking docs, never commit
+ARCHITECTURE.md
+DECISION.md
+AGENTS.md
+STATE.md
+CHANGELOG.md

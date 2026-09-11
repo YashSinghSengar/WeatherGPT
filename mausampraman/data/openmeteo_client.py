@@ -1,10 +1,15 @@
 """Real Open-Meteo client. Frozen contract, see CONTRACTS.md."""
+import json
+import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 
 MODELS = ("gfs_seamless", "ecmwf_ifs025", "icon_seamless")
 URL = "https://api.open-meteo.com/v1/forecast"
+CACHE_DIR = Path(__file__).parent / ".cache"
+CACHE_TTL_S = 30 * 60
 
 
 class DataUnavailable(Exception):
@@ -20,7 +25,28 @@ def _current_index(times: list) -> int:
         return 0
 
 
+def _cache_path(lat: float, lon: float) -> Path:
+    hour = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+    return CACHE_DIR / f"forecast_{lat}_{lon}_{hour}.json"
+
+
+def _cache_hit(path: Path) -> dict | None:
+    try:
+        cached = json.loads(path.read_text())
+        if time.time() - float(cached.get("fetched_at", 0)) < CACHE_TTL_S:
+            cached.pop("fetched_at", None)
+            return cached
+    except Exception:
+        pass
+    return None
+
+
 def get_forecast(lat: float, lon: float) -> dict:
+    path = _cache_path(lat, lon)
+    if path.exists():
+        hit = _cache_hit(path)
+        if hit is not None:
+            return hit
     try:
         r = httpx.get(
             URL,
@@ -51,7 +77,7 @@ def get_forecast(lat: float, lon: float) -> dict:
             rains.append(sum(float(v) for t, v in zip(times, rvals) if t[:10] == next_day))
         temp_c = sum(temps) / len(temps)
         precip_mm = sum(rains) / len(rains)
-        return {
+        result = {
             "temp_c": round(temp_c, 1),
             "humidity_pct": 0,  # ponytail: not requested from API, neutral until wired
             "wind_kph": 0.0,  # ponytail: not requested from API, neutral until wired
@@ -61,6 +87,12 @@ def get_forecast(lat: float, lon: float) -> dict:
             "lat": lat,
             "lon": lon,
         }
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({**result, "fetched_at": time.time()}))
+        except Exception:
+            pass
+        return result
     except DataUnavailable:
         raise
     except Exception as e:
