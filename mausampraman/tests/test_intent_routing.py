@@ -40,8 +40,19 @@ def test_3_warning_focus(monkeypatch):
 
 def test_4_agri_gets_advisory(monkeypatch):
     _wire(monkeypatch)
-    d = c.post("/ask", json={"query": "Should I irrigate grapes in Nashik?"}).json()
+    d = c.post("/ask", json={"query": "Should I irrigate grapes in Nashik?", "crop": "grape", "stage": "veraison"}).json()
     assert d["advisory"]["rule_id"] == "r"
+
+
+def test_opt_in_advisory_null(monkeypatch):
+    _wire(monkeypatch)
+    for q in ("What's the weather in Delhi?", "Will it rain in Bhopal?"):
+        d = c.post("/ask", json={"query": q}).json()
+        assert d["advisory"] is None, q
+    d = c.post("/ask", json={"query": "Should I irrigate grapes in Nashik?"}).json()
+    assert d["advisory"] is None and "unavailable" in d["answer"]
+    d = c.post("/ask", json={"query": "Should I fertilize wheat in Bhopal?"}).json()
+    assert d["advisory"] is None and "unavailable" in d["answer"] and "wheat" not in d["answer"].lower().replace("unavailable", "")
 
 
 def test_5_unsupported_skips_pipeline(monkeypatch):

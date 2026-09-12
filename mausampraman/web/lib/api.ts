@@ -12,7 +12,7 @@ export async function askBackend(req: AskRequest): Promise<AskResponse> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 90000);
   const url = `${base}/ask`;
-  const body = { query: req.query, language: req.language, location: req.location || undefined, crop: req.crop || "grape", stage: req.stage || "veraison" };
+  const body = { query: req.query, language: req.language, location: req.location || undefined, crop: req.crop || undefined, stage: req.stage || undefined };
   try {
     const r = await fetch(url, {
       method: "POST",

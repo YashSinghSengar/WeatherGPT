@@ -51,7 +51,7 @@ function ChatInner() {
     if (!question || loading) return;
     setLoading(true); setError(""); setData(null);
     try {
-      setData(await askBackend({ query: question, language: l, location: loc.trim() || undefined, crop: m === "agri" ? c : "grape", stage: s }));
+      setData(await askBackend({ query: question, language: l, location: loc.trim() || undefined, crop: m === "agri" ? c : undefined, stage: m === "agri" ? s : undefined }));
     } catch {
       setError("Unable to reach MausamPraman right now. Please try again.");
     } finally {

@@ -33,8 +33,27 @@ class AskIn(BaseModel):
     lang: str = "en"
     language: str | None = None
     location: str | None = None
-    crop: str = "grape"
-    stage: str = "veraison"
+    crop: str | None = None
+    stage: str | None = None
+
+
+CROPS = {"grape": ("grape", "angoor", "अंगूर")}
+STAGES = ("flowering", "fruit-set", "fruitset", "veraison", "harvest")
+
+
+def _resolve_crop_stage(query: str, crop: str | None, stage: str | None) -> tuple[str | None, str | None]:
+    q = (query or "").lower()
+    if crop is None:
+        for name, words in CROPS.items():
+            if any(w in q for w in words):
+                crop = name
+                break
+    if stage is None:
+        for s in STAGES:
+            if s in q:
+                stage = "fruit-set" if s == "fruitset" else s
+                break
+    return crop, stage
 
 
 @app.get("/health")
@@ -90,10 +109,12 @@ def ask(body: AskIn):
     confidence = grade_forecast(forecast, warning, divergence)  # deterministic, LLM never touches
     advisory = None
     if intent["intent"] == "agriculture_advice":
-        advisory = get_advisory(body.crop, body.stage, confidence)
+        crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)
+        if crop is not None and stage is not None:
+            advisory = get_advisory(crop, stage, confidence)
         if advisory is None:
             return {
-                "answer": f"Specific grounded guidance for {body.crop}/{body.stage} is unavailable.",
+                "answer": f"Specific grounded guidance for {crop or 'this crop'}/{stage or 'this stage'} is unavailable.",
                 "intent": intent,
                 "confidence": confidence,
                 "provenance": {"forecast_source": forecast["source"], "warning_source": "warnings-store", "grounded": True},
