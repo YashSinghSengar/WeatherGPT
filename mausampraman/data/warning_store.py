@@ -5,9 +5,23 @@ from pathlib import Path
 
 DIR = Path(__file__).parent / "warnings"
 
+ACTIVE = ("yellow", "orange", "red")
+STATUS_TEXT = {
+    "active_warning": "Official warning active",
+    "no_warning_confirmed": "No active warning reported by the available source",
+    "warning_data_unavailable": "Warning status unavailable",
+    "district_not_covered": "Warning coverage unavailable for this location",
+}
+
 
 def _key(district: str) -> str:
     return (district or "").strip().lower()
+
+
+def _synthetic(district: str, status: str) -> dict:
+    today = date.today().isoformat()
+    return {"district": district, "severity": "green", "headline": STATUS_TEXT[status], "body": "",
+            "issued_at": today, "capture_date": today, "status": status}
 
 
 def save_warning(district: str, severity: str, headline: str, body: str, issued_at: str) -> dict:
@@ -24,8 +38,12 @@ def save_warning(district: str, severity: str, headline: str, body: str, issued_
     return record
 
 
-def get_warning(district: str) -> dict | None:
+def get_warning(district: str) -> dict:
     try:
-        return json.loads((DIR / f"{_key(district)}.json").read_text())
+        rec = json.loads((DIR / f"{_key(district)}.json").read_text())
+    except FileNotFoundError:
+        return _synthetic(district, "district_not_covered")
     except Exception:
-        return None
+        return _synthetic(district, "warning_data_unavailable")
+    rec["status"] = "active_warning" if rec.get("severity") in ACTIVE else "no_warning_confirmed"
+    return rec

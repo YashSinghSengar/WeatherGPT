@@ -1,6 +1,5 @@
 """FastAPI entry. Deterministic pipeline, LLM only for wording."""
 import sys
-from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -12,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from data.geocoder import resolve_location
 from data.openmeteo_client import default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model
-from data.warning_store import get_warning
+from data.warning_store import STATUS_TEXT, get_warning
 from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
 from advisory.engine import get_advisory
@@ -61,8 +60,13 @@ def health():
     return {"status": "ok"}
 
 
+def _warn_state(warning: dict) -> str:
+    sev = warning.get("severity", "green")
+    return sev if warning.get("status") == "active_warning" else STATUS_TEXT.get(warning.get("status", ""), sev)
+
+
 def _compose(intent: str, location: dict, forecast: dict, warning: dict, confidence: dict) -> str:
-    sev, grade = warning.get("severity", "green"), confidence.get("grade", "?")
+    sev, grade = _warn_state(warning), confidence.get("grade", "?")
     if intent == "warning_status":
         return f"{location['name']}: warning {sev}. {warning.get('headline', '')} Agreement {grade}."
     if intent == "forecast_rain":
@@ -98,14 +102,7 @@ def ask(body: AskIn):
     location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
     forecast = get_forecast(lat, lon)
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
-    warning = get_warning(district) or {
-        "district": district,
-        "severity": "green",
-        "headline": "No warning",
-        "body": "",
-        "issued_at": date.today().isoformat(),
-        "capture_date": date.today().isoformat(),
-    }
+    warning = get_warning(district)
     per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
     divergence = divergence_scenario_from_models(lat, lon, per_model)
     daily = get_daily(lat, lon)

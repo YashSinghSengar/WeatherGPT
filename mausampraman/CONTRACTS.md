@@ -1,4 +1,4 @@
-# Contracts (frozen v11)
+# Contracts (frozen v12)
 
 Solo project. No module owners.
 
@@ -7,7 +7,7 @@ Solo project. No module owners.
 - `geocode(place) -> (lat, lon) tuple | None` (None = no results; `"nashik_coastal_test"` returns Nashik stub coords without network)
 - `get_forecast(lat, lon) -> {temp_c, humidity_pct?|null, wind_kph?|null, precip_mm, precip_prob_pct?|null, weather_code?|null, condition (WMO, precip fallback only if codes missing), observed_at, source, lat, lon}`
 - `save_warning(district, severity, headline, body, issued_at) -> record incl. capture_date, file data/warnings/{district}.json`
-- `get_warning(district) -> record incl. capture_date | None` (severity green|yellow|orange|red; only green = no-warning)
+- `get_warning(district) -> record incl. status: active_warning|no_warning_confirmed|warning_data_unavailable|district_not_covered` (green file = confirmed; missing = not covered; unreadable = unavailable)
 - `geocode_in(place) -> (lat, lon) | None` (IN-only, no global fallback)
 - `resolve_location(query, explicit?) -> (name, lat, lon) | None` (explicit wins; else IN tokens minus stopwords; else single-word global)
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)

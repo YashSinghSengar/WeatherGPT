@@ -8,7 +8,7 @@ import LoadingSkeleton from "../../components/LoadingSkeleton";
 import GradeBadge from "../../components/GradeBadge";
 import PramanCard from "../../components/PramanCard";
 import AdvisoryCard from "../../components/AdvisoryCard";
-import WarningCard from "../../components/WarningCard";
+import WarningCard, { WarningState } from "../../components/WarningCard";
 import WeatherSummary from "../../components/WeatherSummary";
 import DailyForecast from "../../components/DailyForecast";
 import WhyGrade from "../../components/WhyGrade";
@@ -122,9 +122,7 @@ function ChatInner() {
       {!loading && !error && data && (
         <>
           {data.confidence && data.warning && <WarningCard confidence={data.confidence} warning={data.warning} />}
-          {data.confidence && data.warning && !data.confidence.warning_override && data.warning.severity === "green" && (
-            <p className="quiet">No active warning in the local warning store. This covers stored districts only, not all official warnings.</p>
-          )}
+          {data.warning && <WarningState warning={data.warning} />}
           <section className="card" aria-label="Answer">
             <p className="answer-text">{data.answer}</p>
             {data.confidence && (

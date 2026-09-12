@@ -44,7 +44,7 @@ def test_stubs():
     assert get_advisory("wheat", "veraison", conf) is None
     txt = phrase(adv, f, w, conf, {"name": "Nashik"}, "en")
     assert ground_check(txt, f, w)["grounded"]
-    assert get_warning("qzxnothing") is None
+    assert get_warning("qzxnothing")["status"] == "district_not_covered"
 
 
 def test_warning_override():

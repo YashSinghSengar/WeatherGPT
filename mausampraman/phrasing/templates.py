@@ -1,4 +1,10 @@
 """Deterministic templates. Only wording layer."""
+from data.warning_store import STATUS_TEXT
+
+
+def _warn_state(warning: dict) -> str:
+    sev = warning.get("severity", "green")
+    return sev if warning.get("status") == "active_warning" else STATUS_TEXT.get(warning.get("status", ""), sev)
 
 
 def render_template(payload: dict, language: str) -> str:
@@ -21,5 +27,5 @@ def phrase(advisory: dict, forecast: dict, warning: dict, confidence: dict, loca
     advice = advisory.get("advice_hi") if lang == "hi" else advisory.get("advice_en")
     return (
         f"{location['name']}: {forecast['temp_c']}C, {forecast['condition']}. "
-        f"Warning: {warning.get('severity', 'green')}. Agreement: {confidence['grade']}. Advice: {advice}"
+        f"Warning: {_warn_state(warning)}. Agreement: {confidence['grade']}. Advice: {advice}"
     )
