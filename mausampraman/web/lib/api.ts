@@ -3,7 +3,8 @@ export interface Advisory { crop: string; stage: string; rule_id: string; advice
 export interface Location { name: string; lat: number; lon: number; state: string; country: string; }
 export interface Warning { district: string; severity: string; headline: string; body: string; issued_at: string; capture_date: string; }
 export interface Forecast { temp_c: number; humidity_pct: number | null; wind_kph: number | null; precip_mm: number; precip_prob_pct: number | null; weather_code: number | null; condition: string; observed_at: string | null; source: string; lat: number; lon: number; }
-export interface AskResponse { answer: string; intent?: { intent: string }; confidence: Confidence | null; provenance: { forecast_source: string; warning_source: string; grounded: boolean }; advisory: Advisory | null; location: Location | null; warning: Warning | null; forecast: Forecast | null; }
+export interface DailyPeriod { date: string; temp_max_c: number | null; temp_min_c: number | null; precip_mm: number | null; precip_prob_pct: number | null; weather_code: number | null; condition: string | null; }
+export interface AskResponse { answer: string; intent?: { intent: string }; confidence: Confidence | null; provenance: { forecast_source: string; warning_source: string; grounded: boolean }; advisory: Advisory | null; location: Location | null; warning: Warning | null; forecast: Forecast | null; daily: DailyPeriod[] | null; }
 
 export interface AskRequest { query: string; language: string; location?: string; crop?: string; stage?: string; }
 

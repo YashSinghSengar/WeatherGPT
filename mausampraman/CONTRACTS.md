@@ -1,4 +1,4 @@
-# Contracts (frozen v10)
+# Contracts (frozen v11)
 
 Solo project. No module owners.
 
@@ -10,6 +10,7 @@ Solo project. No module owners.
 - `get_warning(district) -> record incl. capture_date | None` (severity green|yellow|orange|red; only green = no-warning)
 - `geocode_in(place) -> (lat, lon) | None` (IN-only, no global fallback)
 - `resolve_location(query, explicit?) -> (name, lat, lon) | None` (explicit wins; else IN tokens minus stopwords; else single-word global)
+- `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`
 - `default_target_date() -> yesterday ISO`
@@ -24,7 +25,7 @@ Solo project. No module owners.
 ## HTTP
 
 - `GET /health -> {status: ok}`
-- `POST /ask {query, lang?, language?, location?, crop?, stage?} -> {answer, intent, confidence?, provenance, advisory?, location?, warning?, forecast?}` (crop/stage opt-in, nulls on unsupported/unavailable paths)
+- `POST /ask {query, lang?, language?, location?, crop?, stage?} -> {answer, intent, confidence?, provenance, advisory?, location?, warning?, forecast?, daily?}` (crop/stage opt-in, nulls on unsupported/unavailable paths)
 
 ## Principle
 

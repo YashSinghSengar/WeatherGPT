@@ -139,6 +139,63 @@ def default_target_date() -> str:
     return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
+def _daily_cache_path(lat: float, lon: float) -> Path:
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return CACHE_DIR / f"daily_{lat}_{lon}_{day}.json"
+
+
+def get_daily(lat: float, lon: float, days: int = 3) -> list:
+    """Daily periods: date, temp max/min, precip sum, prob max, code. Nulls if absent."""
+    path = _daily_cache_path(lat, lon)
+    if path.exists():
+        try:
+            cached = json.loads(path.read_text())
+            if time.time() - float(cached.get("fetched_at", 0)) < CACHE_TTL_S:
+                return cached["periods"]
+        except Exception:
+            pass
+    try:
+        r = httpx.get(
+            URL,
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weathercode",
+                "forecast_days": days,
+                "timezone": "auto",
+            },
+            timeout=10.0,
+        )
+        r.raise_for_status()
+        daily = r.json().get("daily", {})
+        dates = daily.get("time", [])
+        if not dates:
+            raise ValueError("empty daily time")
+        out = []
+        for i, d in enumerate(dates):
+            pick = lambda var: (daily.get(var) or [None])[i] if i < len(daily.get(var) or []) else None
+            code = pick("weathercode")
+            out.append({
+                "date": d,
+                "temp_max_c": pick("temperature_2m_max"),
+                "temp_min_c": pick("temperature_2m_min"),
+                "precip_mm": pick("precipitation_sum"),
+                "precip_prob_pct": pick("precipitation_probability_max"),
+                "weather_code": code,
+                "condition": WMO.get(code, "unknown") if code is not None else None,
+            })
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"fetched_at": time.time(), "periods": out}))
+        except Exception:
+            pass
+        return out
+    except DataUnavailable:
+        raise
+    except Exception as e:
+        raise DataUnavailable(str(e)) from e
+
+
 def divergence_scenario_from_models(lat: float, lon: float, per: dict, observed_at: str | None = None) -> dict:
     """Pure collapse of per-model data to forecast shape. No network."""
     temps = [v["temp_c"] for v in per.values()]

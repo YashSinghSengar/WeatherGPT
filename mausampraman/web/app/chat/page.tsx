@@ -10,6 +10,7 @@ import PramanCard from "../../components/PramanCard";
 import AdvisoryCard from "../../components/AdvisoryCard";
 import WarningCard from "../../components/WarningCard";
 import WeatherSummary from "../../components/WeatherSummary";
+import DailyForecast from "../../components/DailyForecast";
 import WhyGrade from "../../components/WhyGrade";
 
 const STAGES = ["flowering", "fruit-set", "veraison", "harvest"];
@@ -134,6 +135,7 @@ function ChatInner() {
             )}
           </section>
           {data.forecast && data.location && <WeatherSummary location={data.location} forecast={data.forecast} />}
+          {data.daily && data.daily.length > 0 && <DailyForecast daily={data.daily} />}
           {agri && data.advisory && data.confidence && <AdvisoryCard advisory={data.advisory} confidence={data.confidence} />}
           {agri && !data.advisory && <p className="quiet">{cropSupported ? "Specific grounded guidance is unavailable for this case." : `Grounded guidance for ${crop} is not currently available. Only grape rules exist.`}</p>}
           {data.forecast && data.location && data.confidence && data.warning && <PramanCard data={{ location: data.location, forecast: data.forecast, confidence: data.confidence, warning: data.warning, advisory: data.advisory, provenance: data.provenance }} />}
