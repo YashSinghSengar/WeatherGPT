@@ -25,7 +25,9 @@ def render_template(payload: dict, language: str) -> str:
 
 def phrase(advisory: dict, forecast: dict, warning: dict, confidence: dict, location: dict, lang: str) -> str:
     advice = advisory.get("advice_hi") if lang == "hi" else advisory.get("advice_en")
+    ws = _warn_state(warning)
+    wlabel = f"Warning: {ws}" if warning.get("status") == "active_warning" else ws
     return (
         f"{location['name']}: {forecast['temp_c']}C, {forecast['condition']}. "
-        f"Warning: {_warn_state(warning)}. Agreement: {confidence['grade']}. Advice: {advice}"
+        f"{wlabel}. Agreement: {confidence['grade']}. Advice: {advice}"
     )

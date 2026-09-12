@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from data.geocoder import resolve_location
-from data.openmeteo_client import default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model
+from data.openmeteo_client import DataUnavailable, default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model
 from data.warning_store import STATUS_TEXT, get_warning
 from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
@@ -67,13 +67,16 @@ def _warn_state(warning: dict) -> str:
 
 def _compose(intent: str, location: dict, forecast: dict, warning: dict, confidence: dict) -> str:
     sev, grade = _warn_state(warning), confidence.get("grade", "?")
+    wlabel = f"Warning: {sev}" if warning.get("status") == "active_warning" else sev
     if intent == "warning_status":
-        return f"{location['name']}: warning {sev}. {warning.get('headline', '')} Agreement {grade}."
+        return f"{location['name']}: {wlabel}. {warning.get('headline', '')} Agreement {grade}."
     if intent == "forecast_rain":
-        return f"{location['name']}: {forecast.get('precip_mm')}mm rain expected. Warning: {sev}. Agreement {grade}."
+        return f"{location['name']}: {forecast.get('precip_mm')}mm rain expected. {wlabel}. Agreement {grade}."
     if intent == "confidence_explanation":
-        return f"{location['name']}: agreement {grade} from model spread {confidence.get('spread_mm')}mm, not a probability. Warning: {sev}."
-    return f"{location['name']}: {forecast.get('temp_c')}C, {forecast.get('condition')}. Warning: {sev}. Agreement {grade}."
+        spread = confidence.get("spread_mm")
+        spread_txt = f"{spread}mm" if isinstance(spread, (int, float)) else "unknown"
+        return f"{location['name']}: agreement {grade} from model spread {spread_txt}, not a probability. {wlabel}."
+    return f"{location['name']}: {forecast.get('temp_c')}C, {forecast.get('condition')}. {wlabel}. Agreement {grade}."
 
 
 @app.post("/ask")
@@ -95,18 +98,37 @@ def ask(body: AskIn):
         }
     if intent["intent"] == "unsupported":
         intent = {"intent": "weather_current", "confidence": "high", "signals": ["location-only"]}
-    res = resolve_location(body.query, body.location)
+    try:
+        res = resolve_location(body.query, body.location)
+    except DataUnavailable:
+        raise HTTPException(status_code=503, detail="location service temporarily unavailable")
     if res is None:
         raise HTTPException(status_code=404, detail="could not determine location from query")
     place, lat, lon = res
     location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
-    forecast = get_forecast(lat, lon)
+    try:
+        forecast = get_forecast(lat, lon)
+    except DataUnavailable:
+        raise HTTPException(status_code=503, detail="weather data temporarily unavailable")
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
-    warning = get_warning(district)
-    per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
-    divergence = divergence_scenario_from_models(lat, lon, per_model)
-    daily = get_daily(lat, lon)
-    confidence = grade_forecast(forecast, warning, divergence, per_model)  # deterministic, LLM never touches
+    try:
+        warning = get_warning(district)
+    except Exception:
+        warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
+                   "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
+    try:
+        per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
+        divergence = divergence_scenario_from_models(lat, lon, per_model)
+        confidence = grade_forecast(forecast, warning, divergence, per_model)  # deterministic, LLM never touches
+    except DataUnavailable:
+        overridden = warning.get("severity", "green") != "green"
+        divergence = None
+        confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
+                      "drivers": {"spread_mm": None}, "reasons": ["divergence-unavailable"] + (["active-warning"] if overridden else [])}
+    try:
+        daily = get_daily(lat, lon)
+    except DataUnavailable:
+        daily = None
     advisory = None
     if intent["intent"] == "agriculture_advice":
         crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)

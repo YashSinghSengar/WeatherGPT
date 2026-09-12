@@ -53,8 +53,8 @@ function ChatInner() {
     setLoading(true); setError(""); setData(null);
     try {
       setData(await askBackend({ query: question, language: l, location: loc.trim() || undefined, crop: m === "agri" ? c : undefined, stage: m === "agri" ? s : undefined }));
-    } catch {
-      setError("Unable to reach MausamPraman right now. Please try again.");
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Unable to reach MausamPraman right now. Please try again.");
     } finally {
       setLoading(false);
     }

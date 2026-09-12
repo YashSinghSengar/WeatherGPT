@@ -1,4 +1,4 @@
-# Contracts (frozen v12)
+# Contracts (frozen v13)
 
 Solo project. No module owners.
 
@@ -26,6 +26,13 @@ Solo project. No module owners.
 
 - `GET /health -> {status: ok}`
 - `POST /ask {query, lang?, language?, location?, crop?, stage?} -> {answer, intent, confidence?, provenance, advisory?, location?, warning?, forecast?, daily?}` (crop/stage opt-in, nulls on unsupported/unavailable paths)
+
+## Failure semantics
+
+- geocoder/forecast upstream down -> 503 with detail, never fabricated
+- divergence down -> 200, grade D + divergence-unavailable reason, spread null (never perfect agreement)
+- warning store unreadable -> warning_data_unavailable record
+- daily down -> daily null; LLM down -> template; per-call timeout 5s, no retries
 
 ## Principle
 

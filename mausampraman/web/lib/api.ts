@@ -21,7 +21,11 @@ export async function askBackend(req: AskRequest): Promise<AskResponse> {
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
-    if (!r.ok) throw new Error(`backend ${r.status}`);
+    if (!r.ok) {
+      let detail = "";
+      try { detail = (await r.json()).detail || ""; } catch { /* non-JSON error body */ }
+      throw new Error(detail || `MausamPraman backend unavailable (HTTP ${r.status}). Please try again.`);
+    }
     const d = await r.json();
     if (!d || typeof d.answer !== "string") throw new Error("bad shape");
     return d as AskResponse;

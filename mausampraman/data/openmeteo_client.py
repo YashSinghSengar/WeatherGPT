@@ -7,6 +7,7 @@ from pathlib import Path
 import httpx
 
 MODELS = ("gfs_seamless", "ecmwf_ifs025", "icon_seamless")
+TIMEOUT = 5.0  # ponytail: chat-appropriate per-call bound, no retries anywhere
 URL = "https://api.open-meteo.com/v1/forecast"
 PREV_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
 HOURLY = "temperature_2m,rain,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m"
@@ -81,7 +82,7 @@ def get_forecast(lat: float, lon: float) -> dict:
                 "models": ",".join(MODELS),
                 "forecast_days": 2,
             },
-            timeout=10.0,
+            timeout=TIMEOUT,
         )
         r.raise_for_status()
         hourly = r.json().get("hourly", {})
@@ -164,7 +165,7 @@ def get_daily(lat: float, lon: float, days: int = 3) -> list:
                 "forecast_days": days,
                 "timezone": "auto",
             },
-            timeout=10.0,
+            timeout=TIMEOUT,
         )
         r.raise_for_status()
         daily = r.json().get("daily", {})
@@ -239,7 +240,7 @@ def prevruns_per_model(lat: float, lon: float, date_str: str) -> dict:
                 "start_date": date_str,
                 "end_date": date_str,
             },
-            timeout=10.0,
+            timeout=TIMEOUT,
         )
         r.raise_for_status()
         hourly = r.json().get("hourly", {})

@@ -3,7 +3,7 @@ import re
 
 import httpx
 
-from .openmeteo_client import DataUnavailable
+from .openmeteo_client import TIMEOUT, DataUnavailable
 
 URL = "https://geocoding-api.open-meteo.com/v1/search"
 _FALLBACK = (19.9975, 73.7898)  # ponytail: Nashik stub coords, warning-override test path only
@@ -11,7 +11,7 @@ STOPWORDS = {"will","what","where","when","which","who","should","shall","can","
 
 
 def _search(place_name: str) -> list:
-    r = httpx.get(URL, params={"name": place_name or "", "count": 5}, timeout=10.0)
+    r = httpx.get(URL, params={"name": place_name or "", "count": 5}, timeout=TIMEOUT)
     r.raise_for_status()
     return r.json().get("results") or []
 
