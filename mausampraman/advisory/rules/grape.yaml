@@ -1,11 +1,53 @@
+# PLACEHOLDER citations: every citation below must be replaced with a real
+# GKMS/ICAR source before public submission.
 crop: grape
-version: 0
+version: 1
 rules:
-  - id: heat_watch
-    when: temp_c >= 35
-    advice_en: "High heat. Irrigate early morning. Avoid pesticide spray midday."
-    advice_hi: "तेज गर्मी। सुबह सिंचाई करें। दोपहर में छिड़काव न करें।"
-  - id: default
-    when: true
-    advice_en: "Weather normal for grapes. Maintain routine canopy care."
-    advice_hi: "अंगूर के लिए मौसम सामान्य। नियमित देखभाल जारी रखें।"
+  - id: flowering_low_spread
+    stage: flowering
+    when: "< 5"
+    advice_en: "Models agree. Proceed with flowering spray schedule and bee-safe timing."
+    advice_hi: "मॉडल सहमत। फूल अवस्था का छिड़काव कार्यक्रम जारी रखें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: flowering_high_spread
+    stage: flowering
+    when: ">= 5"
+    advice_en: "Models disagree on rain. Delay sprays, protect open flowers from wash-off."
+    advice_hi: "मॉडल असहमत। छिड़काव रोकें, फूलों को बारिश से बचाएं।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: fruitset_low_spread
+    stage: fruit-set
+    when: "< 5"
+    advice_en: "Models agree. Continue fruit-set irrigation and thinning as planned."
+    advice_hi: "मॉडल सहमत। फल-धारण सिंचाई और विरलन जारी रखें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: fruitset_high_spread
+    stage: fruit-set
+    when: ">= 5"
+    advice_en: "Models disagree on rain. Hold extra irrigation, watch for powdery mildew."
+    advice_hi: "मॉडल असहमत। अतिरिक्त सिंचाई रोकें, भुकड़ी रोग पर नजर रखें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: veraison_low_spread
+    stage: veraison
+    when: "< 5"
+    advice_en: "Models agree. Proceed normally with veraison sugar checks."
+    advice_hi: "मॉडल सहमत। शर्करा जांच सामान्य रूप से करें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: veraison_high_spread
+    stage: veraison
+    when: ">= 5"
+    advice_en: "Models disagree on rain. Delay harvest prep, protect fruit from splitting."
+    advice_hi: "मॉडल असहमत। कटाई तैयारी रोकें, फलों को फटने से बचाएं।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: harvest_low_spread
+    stage: harvest
+    when: "< 5"
+    advice_en: "Models agree. Harvest at target brix, keep crates dry."
+    advice_hi: "मॉडल सहमत। लक्षित ब्रिक्स पर कटाई करें, क्रेट सूखे रखें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
+  - id: harvest_high_spread
+    stage: harvest
+    when: ">= 5"
+    advice_en: "Models disagree on rain. Harvest early lots first, cover stacked crates."
+    advice_hi: "मॉडल असहमत। पहले तैयार फल काटें, क्रेट ढककर रखें।"
+    citation: "PLACEHOLDER - replace with GKMS/ICAR source"
