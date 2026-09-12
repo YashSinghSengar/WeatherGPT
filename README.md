@@ -347,9 +347,9 @@ python3 eval/run_golden_set.py
 
 ## 📑 Core System Contracts
 
-For detailed API function contracts, module boundaries, and internal specifications, refer to [CONTRACTS.md](CONTRACTS.md).
+For detailed API function contracts, module boundaries, and internal specifications, refer to [mausampraman/CONTRACTS.md](mausampraman/CONTRACTS.md).
 
-For deployment guides on Render and Vercel/Static hosts, refer to [DEPLOY.md](DEPLOY.md).
+For deployment guides on Render and Vercel/Static hosts, refer to [mausampraman/DEPLOY.md](mausampraman/DEPLOY.md).
 
 ---
 
