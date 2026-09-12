@@ -1,13 +1,17 @@
 """FastAPI entry. Deterministic pipeline, LLM only for wording."""
+import json
+import logging
 import os
 import sys
+import time
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -24,6 +28,12 @@ from phrasing.templates import phrase
 from api.intent import classify_intent
 
 app = FastAPI(title="MausamPraman")
+log = logging.getLogger("mausampraman")
+if not log.handlers:  # ponytail: stdout JSON lines even without uvicorn handlers
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    log.addHandler(_h)
+log.setLevel(logging.INFO)
 
 
 def allowed_origins() -> list:
@@ -94,11 +104,25 @@ def _compose(intent: str, location: dict, forecast: dict, warning: dict, confide
 
 
 @app.post("/ask")
-def ask(body: AskIn):
+def ask(body: AskIn, response: Response):
+    rid = uuid.uuid4().hex[:12]
+    t0 = time.perf_counter()
+
+    def emit(status: int, **kw) -> None:
+        rec = {"request_id": rid, "duration_ms": round((time.perf_counter() - t0) * 1000, 1),
+               "status": status, "wording": "template", **kw}
+        response.headers["X-Request-ID"] = rid
+        log.info(json.dumps(rec))
+
+    def fail(status: int, detail: str, **kw):
+        emit(status, **kw)
+        raise HTTPException(status_code=status, detail=detail, headers={"X-Request-ID": rid})
+
     lang = body.language or body.lang
     lang = lang if lang in ("en", "hi") else "en"
     intent = classify_intent(body.query)
     if intent["intent"] == "unsupported" and resolve_location(body.query, body.location) is None:
+        emit(200, intent=intent["intent"], location=None, path="unsupported", grade=None, upstream_failure=None)
         return {
             "answer": "I can help with current weather, rain forecasts, warnings, grape advice, or forecast trust. Please ask about a place.",
             "intent": intent,
@@ -115,19 +139,21 @@ def ask(body: AskIn):
     try:
         res = resolve_location(body.query, body.location)
     except DataUnavailable:
-        raise HTTPException(status_code=503, detail="location service temporarily unavailable")
+        fail(503, "location service temporarily unavailable", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure="geocoder")
     if res is None:
-        raise HTTPException(status_code=404, detail="could not determine location from query")
+        fail(404, "could not determine location from query", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure=None)
     place, lat, lon = res
     location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
     try:
         forecast = get_forecast(lat, lon)
     except DataUnavailable:
-        raise HTTPException(status_code=503, detail="weather data temporarily unavailable")
+        fail(503, "weather data temporarily unavailable", intent=intent["intent"], location=place, path="forecast", grade=None, upstream_failure="forecast")
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
+    upstream = None
     try:
         warning = get_warning(district)
     except Exception:
+        upstream = "warning_store"
         warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
                    "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
     try:
@@ -135,6 +161,7 @@ def ask(body: AskIn):
         divergence = divergence_scenario_from_models(lat, lon, per_model)
         confidence = grade_forecast(forecast, warning, divergence, per_model)  # deterministic, LLM never touches
     except DataUnavailable:
+        upstream = "divergence"
         overridden = warning.get("severity", "green") != "green"
         divergence = None
         confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
@@ -142,6 +169,7 @@ def ask(body: AskIn):
     try:
         daily = get_daily(lat, lon)
     except DataUnavailable:
+        upstream = upstream or "daily"
         daily = None
     advisory = None
     if intent["intent"] == "agriculture_advice":
@@ -149,6 +177,7 @@ def ask(body: AskIn):
         if crop is not None and stage is not None:
             advisory = get_advisory(crop, stage, confidence)
         if advisory is None:
+            emit(200, intent=intent["intent"], location=place, path="agriculture_advice:unavailable", grade=confidence.get("grade"), upstream_failure=upstream)
             return {
                 "answer": f"Specific grounded guidance for {crop or 'this crop'}/{stage or 'this stage'} is unavailable.",
                 "intent": intent,
@@ -164,6 +193,7 @@ def ask(body: AskIn):
     else:
         answer = _compose(intent["intent"], location, forecast, warning, confidence)
     check = ground_check(answer, forecast, warning, confidence, advisory, location)
+    emit(200, intent=intent["intent"], location=place, path=intent["intent"], grade=confidence.get("grade"), upstream_failure=upstream)
     return {
         "answer": answer,
         "intent": intent,
