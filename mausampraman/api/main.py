@@ -10,7 +10,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from data.geocoder import geocode
+from data.geocoder import resolve_location
 from data.openmeteo_client import get_divergence_scenario, get_forecast
 from data.warning_store import get_warning
 from confidence.engine import grade_forecast
@@ -19,12 +19,19 @@ from advisory.engine import get_advisory
 from phrasing.templates import phrase
 
 app = FastAPI(title="MausamPraman")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class AskIn(BaseModel):
     query: str = "Nashik weather"
     lang: str = "en"
+    language: str | None = None
+    location: str | None = None
     crop: str = "grape"
     stage: str = "veraison"
 
@@ -36,20 +43,12 @@ def health():
 
 @app.post("/ask")
 def ask(body: AskIn):
-    lang = body.lang if body.lang in ("en", "hi") else "en"
-    place = (body.query or "").strip() or "Unknown"
-    coords = geocode(place)
-    if coords is None:  # ponytail: token fallback, real NLP/NER later
-        for tok in [w.strip("?.,!,;:") for w in place.split()]:
-            if len(tok) < 4:
-                continue
-            hit = geocode(tok)
-            if hit is not None:
-                coords, place = hit, tok
-                break
-    if coords is None:
-        raise HTTPException(status_code=404, detail="location not found")
-    lat, lon = coords
+    lang = body.language or body.lang
+    lang = lang if lang in ("en", "hi") else "en"
+    res = resolve_location(body.query, body.location)
+    if res is None:
+        raise HTTPException(status_code=404, detail="could not determine location from query")
+    place, lat, lon = res
     location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
     forecast = get_forecast(lat, lon)
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later

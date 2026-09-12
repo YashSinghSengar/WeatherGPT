@@ -9,11 +9,13 @@ export async function askBackend(query: string, lang: string): Promise<AskRespon
   const base = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 90000);
+  const url = `${base}/ask`;
+  const body = { query, language: lang };
   try {
-    const r = await fetch(`${base}/ask`, {
+    const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, lang, crop: "grape" }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     if (!r.ok) throw new Error(`backend ${r.status}`);

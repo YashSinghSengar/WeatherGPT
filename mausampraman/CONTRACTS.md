@@ -1,4 +1,4 @@
-# Contracts (frozen v6)
+# Contracts (frozen v7)
 
 Solo project. No module owners.
 
@@ -8,6 +8,8 @@ Solo project. No module owners.
 - `get_forecast(lat, lon) -> {temp_c, humidity_pct, wind_kph, precip_mm, condition, source, lat, lon}`
 - `save_warning(district, severity, headline, body, issued_at) -> record incl. capture_date, file data/warnings/{district}.json`
 - `get_warning(district) -> record incl. capture_date | None` (severity green|yellow|orange|red; only green = no-warning)
+- `geocode_in(place) -> (lat, lon) | None` (IN-only, no global fallback)
+- `resolve_location(query, explicit?) -> (name, lat, lon) | None` (explicit wins; else IN tokens minus stopwords; else single-word global)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `prevruns_per_model(lat, lon, date_str) -> {model: {temp_c, rain_mm}}`
 - `grade(models, warning?, feed_age_min, horizon_days) -> {grade: A|B|C|D, warning_override: bool, spread_mm, skill_prior, drivers: {spread_mm}}` (models flat or {models: {...}}; override = non-green severity -> D+True)
@@ -20,7 +22,7 @@ Solo project. No module owners.
 ## HTTP
 
 - `GET /health -> {status: ok}`
-- `POST /ask {query, lang: en|hi, crop, stage} -> {answer, confidence, provenance{forecast_source, warning_source, grounded}, advisory, location, warning, forecast}`
+- `POST /ask {query, lang?, language?, location?, crop, stage} -> {answer, confidence, provenance{forecast_source, warning_source, grounded}, advisory, location, warning, forecast}`
 
 ## Principle
 
