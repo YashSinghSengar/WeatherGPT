@@ -1,11 +1,11 @@
-# Contracts (frozen v9)
+# Contracts (frozen v10)
 
 Solo project. No module owners.
 
 ## Functions
 
 - `geocode(place) -> (lat, lon) tuple | None` (None = no results; `"nashik_coastal_test"` returns Nashik stub coords without network)
-- `get_forecast(lat, lon) -> {temp_c, humidity_pct, wind_kph, precip_mm, condition, source, lat, lon}`
+- `get_forecast(lat, lon) -> {temp_c, humidity_pct?|null, wind_kph?|null, precip_mm, precip_prob_pct?|null, weather_code?|null, condition (WMO, precip fallback only if codes missing), observed_at, source, lat, lon}`
 - `save_warning(district, severity, headline, body, issued_at) -> record incl. capture_date, file data/warnings/{district}.json`
 - `get_warning(district) -> record incl. capture_date | None` (severity green|yellow|orange|red; only green = no-warning)
 - `geocode_in(place) -> (lat, lon) | None` (IN-only, no global fallback)

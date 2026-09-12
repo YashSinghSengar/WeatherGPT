@@ -61,9 +61,9 @@ def ground_check(draft: str, forecast: dict, warning: dict, confidence: dict | N
         if str(location["name"]).lower() not in low:
             issues.append("wrong-location")
 
-    if forecast.get("humidity_pct", 0) == 0 and re.search(r"humidity\D{0,5}0\s?%", low):
+    if forecast.get("humidity_pct") is None and re.search(r"humidity", low):
         issues.append("unconfirmed-data:humidity")
-    if forecast.get("wind_kph", 0.0) == 0.0 and re.search(r"wind\D{0,5}0(\.0)?\s?(km/h|kph)", low):
+    if forecast.get("wind_kph") is None and re.search(r"wind", low):
         issues.append("unconfirmed-data:wind")
 
     return {"grounded": not issues, "issues": issues}
