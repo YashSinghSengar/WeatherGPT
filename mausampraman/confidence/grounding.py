@@ -41,7 +41,7 @@ def ground_check(draft: str, forecast: dict, warning: dict, confidence: dict | N
             issues.append("warning-contradicted")
 
     if confidence and confidence.get("grade"):
-        m = re.search(r"confidence\s*[:\-]?\s*([A-Da-d])", low)
+        m = re.search(r"(?:confidence|agreement)\s*[:\-]?\s*([A-Da-d])", low)
         if m and m.group(1).upper() != confidence["grade"]:
             issues.append(f"wrong-grade:{m.group(1).upper()}")
 

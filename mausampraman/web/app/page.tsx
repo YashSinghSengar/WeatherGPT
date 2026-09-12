@@ -25,7 +25,7 @@ export default function Home() {
         <div className="grid">
           <div className="card"><h3>Weather</h3><p className="muted">Current conditions for any resolvable location.</p></div>
           <div className="card"><h3>Warnings</h3><p className="muted">Stored warnings override normal advice, visibly.</p></div>
-          <div className="card"><h3>Forecast confidence</h3><p className="muted">Every answer carries a deterministic A–D grade.</p></div>
+          <div className="card"><h3>Forecast agreement</h3><p className="muted">Every answer carries a deterministic A–D grade for model agreement — never presented as a probability.</p></div>
           <div className="card"><h3>Agriculture</h3><p className="muted">Optional grape-stage guidance where supported.</p></div>
           <div className="card"><h3>Hindi + English</h3><p className="muted">Ask and read in either language.</p></div>
         </div>

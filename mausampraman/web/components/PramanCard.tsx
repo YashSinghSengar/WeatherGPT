@@ -19,7 +19,7 @@ export default function PramanCard({ data }: { data: PramanData }) {
         <dt>Location resolved to</dt><dd>{data.location.lat}, {data.location.lon}</dd>
         <dt>Forecast</dt><dd>{data.forecast.temp_c}°C, {data.forecast.condition}, rain {data.forecast.precip_mm} mm</dd>
         <dt>Model spread</dt><dd>{data.confidence.spread_mm} mm across GFS / ECMWF / ICON runs</dd>
-        <dt>Confidence</dt><dd><GradeBadge grade={data.confidence.grade} /></dd>
+        <dt>Agreement</dt><dd><GradeBadge grade={data.confidence.grade} /></dd>
         <dt>Warning</dt><dd>{data.warning.severity} — {data.warning.headline}</dd>
         {data.advisory && (<><dt>Advisory rule</dt><dd>{data.advisory.rule_id} ({data.advisory.strength})</dd></>)}
         <dt>Sources</dt><dd>{data.provenance.forecast_source} · {data.provenance.warning_source} · grounded: {String(data.provenance.grounded)}</dd>

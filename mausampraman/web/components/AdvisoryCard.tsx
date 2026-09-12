@@ -6,7 +6,7 @@ export default function AdvisoryCard({ advisory, confidence }: { advisory: Advis
     <section className="card" aria-label="Advisory">
       <h3>Advisory — {advisory.crop}, {advisory.stage}</h3>
       {lowTrust && (
-        <p className="muted"><strong>Caution:</strong> confidence is {confidence.grade}
+        <p className="muted"><strong>Caution:</strong> agreement is {confidence.grade}
         {confidence.warning_override ? " with an active warning" : ""}. This is watch-only guidance, not confident advice.</p>
       )}
       <p><strong>Action:</strong> {advisory.advice_en}</p>

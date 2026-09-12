@@ -21,5 +21,5 @@ def phrase(advisory: dict, forecast: dict, warning: dict, confidence: dict, loca
     advice = advisory.get("advice_hi") if lang == "hi" else advisory.get("advice_en")
     return (
         f"{location['name']}: {forecast['temp_c']}C, {forecast['condition']}. "
-        f"Warning: {warning.get('severity', 'green')}. Confidence: {confidence['grade']}. Advice: {advice}"
+        f"Warning: {warning.get('severity', 'green')}. Agreement: {confidence['grade']}. Advice: {advice}"
     )

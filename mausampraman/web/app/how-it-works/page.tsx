@@ -5,7 +5,7 @@ const STEPS = [
   ["Collect weather data", "Current conditions from Open-Meteo, three models."],
   ["Check warnings", "Stored district warnings; severe ones override everything."],
   ["Compare forecast signals", "Yesterday's per-model rain totals become a disagreement spread."],
-  ["Assign confidence", "Spread, data age, and horizon map to a deterministic A–D grade."],
+  ["Assign agreement", "Spread, data age, and horizon map to a deterministic A–D agreement grade — a measure of signal alignment, not a probability."],
   ["Apply grounded rules", "Crop-stage rules fire only on measured spread bands."],
   ["Phrase the result", "A language model words the decided answer under strict validation."],
   ["Show provenance", "Coordinates, sources, drivers, and citations ship with the answer."],
@@ -20,12 +20,13 @@ export default function HowItWorks() {
       <ol className="steps">
         {STEPS.map(([t, s]) => (<li key={t}><strong>{t}</strong> — {s}</li>))}
       </ol>
-      <h2>Confidence grades</h2>
+      <h2>Agreement grades</h2>
+      <p className="muted">Grades describe agreement among available forecast signals — not a probability that the forecast is true.</p>
       <div className="grid">
-        <div className="card"><GradeBadge grade="A" /><p>High confidence.</p></div>
-        <div className="card"><GradeBadge grade="B" /><p>Moderate confidence.</p></div>
-        <div className="card"><GradeBadge grade="C" /><p>Low confidence.</p></div>
-        <div className="card"><GradeBadge grade="D" /><p>Insufficient confidence, or warning override.</p></div>
+        <div className="card"><GradeBadge grade="A" /><p>High agreement.</p></div>
+        <div className="card"><GradeBadge grade="B" /><p>Moderate agreement.</p></div>
+        <div className="card"><GradeBadge grade="C" /><p>Low agreement.</p></div>
+        <div className="card"><GradeBadge grade="D" /><p>Insufficient agreement, or warning override.</p></div>
       </div>
     </>
   );

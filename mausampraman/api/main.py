@@ -64,12 +64,12 @@ def health():
 def _compose(intent: str, location: dict, forecast: dict, warning: dict, confidence: dict) -> str:
     sev, grade = warning.get("severity", "green"), confidence.get("grade", "?")
     if intent == "warning_status":
-        return f"{location['name']}: warning {sev}. {warning.get('headline', '')} Confidence {grade}."
+        return f"{location['name']}: warning {sev}. {warning.get('headline', '')} Agreement {grade}."
     if intent == "forecast_rain":
-        return f"{location['name']}: {forecast.get('precip_mm')}mm rain expected. Warning: {sev}. Confidence {grade}."
+        return f"{location['name']}: {forecast.get('precip_mm')}mm rain expected. Warning: {sev}. Agreement {grade}."
     if intent == "confidence_explanation":
-        return f"{location['name']}: confidence {grade} from model spread {confidence.get('spread_mm')}mm. Warning: {sev}."
-    return f"{location['name']}: {forecast.get('temp_c')}C, {forecast.get('condition')}. Warning: {sev}. Confidence {grade}."
+        return f"{location['name']}: agreement {grade} from model spread {confidence.get('spread_mm')}mm, not a probability. Warning: {sev}."
+    return f"{location['name']}: {forecast.get('temp_c')}C, {forecast.get('condition')}. Warning: {sev}. Agreement {grade}."
 
 
 @app.post("/ask")
