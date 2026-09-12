@@ -1,6 +1,11 @@
 """FastAPI entry. Deterministic pipeline, LLM only for wording."""
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,9 +24,18 @@ from phrasing.templates import phrase
 from api.intent import classify_intent
 
 app = FastAPI(title="MausamPraman")
+
+
+def allowed_origins() -> list:
+    prod = os.environ.get("FRONTEND_ORIGIN", "").strip()
+    if prod:
+        return [prod]
+    return ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+    allow_origins=allowed_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
 )
