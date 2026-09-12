@@ -24,5 +24,5 @@ def test_explicit_location_field():
 
 
 def test_unresolvable_location():
-    r = c.post("/ask", json={"query": "xqztwkjvblorp zzzqq", "language": "en"})
-    assert r.status_code == 404
+    d = c.post("/ask", json={"query": "xqztwkjvblorp zzzqq", "language": "en"}).json()
+    assert d["advisory"] is None and d["forecast"] is None and d["location"] is None

@@ -52,4 +52,4 @@ def test_warning_override():
     d = r.json()
     assert d["confidence"]["grade"] == "D"
     assert d["confidence"]["warning_override"] is True
-    assert d["advisory"]["safe"] is False
+    assert d["warning"]["severity"] == "orange"

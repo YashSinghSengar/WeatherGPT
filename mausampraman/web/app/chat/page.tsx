@@ -120,18 +120,23 @@ function ChatInner() {
       {!loading && !error && !data && <EmptyState onAsk={(loc, q) => { setLocation(loc); setQuery(q); run(loc, q, lang, mode, crop, stage); }} />}
       {!loading && !error && data && (
         <>
-          <WarningCard data={data} />
-          {!data.confidence.warning_override && data.warning.severity === "green" && (
+          {data.confidence && data.warning && <WarningCard confidence={data.confidence} warning={data.warning} />}
+          {data.confidence && data.warning && !data.confidence.warning_override && data.warning.severity === "green" && (
             <p className="quiet">No active warning in the local warning store. This covers stored districts only, not all official warnings.</p>
           )}
           <section className="card" aria-label="Answer">
             <p className="answer-text">{data.answer}</p>
-            <GradeBadge grade={data.confidence.grade} />
-            <WhyGrade data={data} />
+            {data.confidence && (
+              <>
+                <GradeBadge grade={data.confidence.grade} />
+                {data.warning && <WhyGrade confidence={data.confidence} warning={data.warning} />}
+              </>
+            )}
           </section>
-          <WeatherSummary data={data} />
-          {agri && (cropSupported ? <AdvisoryCard data={data} /> : <p className="quiet">Grounded guidance for {crop} is not currently available. Only grape rules exist.</p>)}
-          <PramanCard data={data} />
+          {data.forecast && data.location && <WeatherSummary location={data.location} forecast={data.forecast} />}
+          {agri && data.advisory && data.confidence && <AdvisoryCard advisory={data.advisory} confidence={data.confidence} />}
+          {agri && !data.advisory && <p className="quiet">{cropSupported ? "Specific grounded guidance is unavailable for this case." : `Grounded guidance for ${crop} is not currently available. Only grape rules exist.`}</p>}
+          {data.forecast && data.location && data.confidence && data.warning && <PramanCard data={{ location: data.location, forecast: data.forecast, confidence: data.confidence, warning: data.warning, advisory: data.advisory, provenance: data.provenance }} />}
         </>
       )}
     </>

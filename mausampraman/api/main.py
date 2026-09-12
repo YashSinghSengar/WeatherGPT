@@ -17,6 +17,7 @@ from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
 from advisory.engine import get_advisory
 from phrasing.templates import phrase
+from api.intent import classify_intent
 
 app = FastAPI(title="MausamPraman")
 app.add_middleware(
@@ -41,10 +42,35 @@ def health():
     return {"status": "ok"}
 
 
+def _compose(intent: str, location: dict, forecast: dict, warning: dict, confidence: dict) -> str:
+    sev, grade = warning.get("severity", "green"), confidence.get("grade", "?")
+    if intent == "warning_status":
+        return f"{location['name']}: warning {sev}. {warning.get('headline', '')} Confidence {grade}."
+    if intent == "forecast_rain":
+        return f"{location['name']}: {forecast.get('precip_mm')}mm rain expected. Warning: {sev}. Confidence {grade}."
+    if intent == "confidence_explanation":
+        return f"{location['name']}: confidence {grade} from model spread {confidence.get('spread_mm')}mm. Warning: {sev}."
+    return f"{location['name']}: {forecast.get('temp_c')}C, {forecast.get('condition')}. Warning: {sev}. Confidence {grade}."
+
+
 @app.post("/ask")
 def ask(body: AskIn):
     lang = body.language or body.lang
     lang = lang if lang in ("en", "hi") else "en"
+    intent = classify_intent(body.query)
+    if intent["intent"] == "unsupported" and resolve_location(body.query, body.location) is None:
+        return {
+            "answer": "I can help with current weather, rain forecasts, warnings, grape advice, or forecast trust. Please ask about a place.",
+            "intent": intent,
+            "confidence": None,
+            "provenance": {"forecast_source": "none", "warning_source": "warnings-store", "grounded": True},
+            "advisory": None,
+            "location": None,
+            "warning": None,
+            "forecast": None,
+        }
+    if intent["intent"] == "unsupported":
+        intent = {"intent": "weather_current", "confidence": "high", "signals": ["location-only"]}
     res = resolve_location(body.query, body.location)
     if res is None:
         raise HTTPException(status_code=404, detail="could not determine location from query")
@@ -62,13 +88,27 @@ def ask(body: AskIn):
     }
     divergence = get_divergence_scenario(lat, lon)
     confidence = grade_forecast(forecast, warning, divergence)  # deterministic, LLM never touches
-    advisory = get_advisory(body.crop, body.stage, confidence)
-    if advisory is None:
-        raise HTTPException(status_code=400, detail="no advisory rule for crop/stage")
-    answer = phrase(advisory, forecast, warning, confidence, location, lang)  # wording only
+    advisory = None
+    if intent["intent"] == "agriculture_advice":
+        advisory = get_advisory(body.crop, body.stage, confidence)
+        if advisory is None:
+            return {
+                "answer": f"Specific grounded guidance for {body.crop}/{body.stage} is unavailable.",
+                "intent": intent,
+                "confidence": confidence,
+                "provenance": {"forecast_source": forecast["source"], "warning_source": "warnings-store", "grounded": True},
+                "advisory": None,
+                "location": location,
+                "warning": warning,
+                "forecast": forecast,
+            }
+        answer = phrase(advisory, forecast, warning, confidence, location, lang)  # wording only
+    else:
+        answer = _compose(intent["intent"], location, forecast, warning, confidence)
     check = ground_check(answer, forecast, warning)
     return {
         "answer": answer,
+        "intent": intent,
         "confidence": confidence,
         "provenance": {
             "forecast_source": forecast["source"],

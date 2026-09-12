@@ -1,4 +1,4 @@
-# Contracts (frozen v7)
+# Contracts (frozen v8)
 
 Solo project. No module owners.
 
@@ -22,7 +22,7 @@ Solo project. No module owners.
 ## HTTP
 
 - `GET /health -> {status: ok}`
-- `POST /ask {query, lang?, language?, location?, crop, stage} -> {answer, confidence, provenance{forecast_source, warning_source, grounded}, advisory, location, warning, forecast}`
+- `POST /ask {query, lang?, language?, location?, crop, stage} -> {answer, intent, confidence?, provenance, advisory?, location?, warning?, forecast?}` (nulls on unsupported/unavailable paths)
 
 ## Principle
 

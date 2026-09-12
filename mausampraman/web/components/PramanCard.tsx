@@ -1,7 +1,16 @@
-import type { AskResponse } from "../lib/api";
+import type { Advisory, Confidence, Forecast, Location, Warning } from "../lib/api";
 import GradeBadge from "./GradeBadge";
 
-export default function PramanCard({ data }: { data: AskResponse }) {
+export interface PramanData {
+  location: Location;
+  forecast: Forecast;
+  confidence: Confidence;
+  warning: Warning;
+  advisory: Advisory | null;
+  provenance: { forecast_source: string; warning_source: string; grounded: boolean };
+}
+
+export default function PramanCard({ data }: { data: PramanData }) {
   return (
     <section className="card" aria-label="Praman Card: evidence behind this answer">
       <h3>Praman Card — evidence behind this answer</h3>
@@ -12,7 +21,7 @@ export default function PramanCard({ data }: { data: AskResponse }) {
         <dt>Model spread</dt><dd>{data.confidence.spread_mm} mm across GFS / ECMWF / ICON runs</dd>
         <dt>Confidence</dt><dd><GradeBadge grade={data.confidence.grade} /></dd>
         <dt>Warning</dt><dd>{data.warning.severity} — {data.warning.headline}</dd>
-        <dt>Advisory rule</dt><dd>{data.advisory.rule_id} ({data.advisory.strength})</dd>
+        {data.advisory && (<><dt>Advisory rule</dt><dd>{data.advisory.rule_id} ({data.advisory.strength})</dd></>)}
         <dt>Sources</dt><dd>{data.provenance.forecast_source} · {data.provenance.warning_source} · grounded: {String(data.provenance.grounded)}</dd>
       </dl>
     </section>

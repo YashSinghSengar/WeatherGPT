@@ -3,7 +3,7 @@ export interface Advisory { crop: string; stage: string; rule_id: string; advice
 export interface Location { name: string; lat: number; lon: number; state: string; country: string; }
 export interface Warning { district: string; severity: string; headline: string; body: string; issued_at: string; capture_date: string; }
 export interface Forecast { temp_c: number; humidity_pct: number; wind_kph: number; precip_mm: number; condition: string; source: string; lat: number; lon: number; }
-export interface AskResponse { answer: string; confidence: Confidence; provenance: { forecast_source: string; warning_source: string; grounded: boolean }; advisory: Advisory; location: Location; warning: Warning; forecast: Forecast; }
+export interface AskResponse { answer: string; intent?: { intent: string }; confidence: Confidence | null; provenance: { forecast_source: string; warning_source: string; grounded: boolean }; advisory: Advisory | null; location: Location | null; warning: Warning | null; forecast: Forecast | null; }
 
 export interface AskRequest { query: string; language: string; location?: string; crop?: string; stage?: string; }
 
@@ -22,7 +22,7 @@ export async function askBackend(req: AskRequest): Promise<AskResponse> {
     });
     if (!r.ok) throw new Error(`backend ${r.status}`);
     const d = await r.json();
-    if (!d || typeof d.answer !== "string" || !d.confidence || !d.location) throw new Error("bad shape");
+    if (!d || typeof d.answer !== "string") throw new Error("bad shape");
     return d as AskResponse;
   } finally {
     clearTimeout(timer);
