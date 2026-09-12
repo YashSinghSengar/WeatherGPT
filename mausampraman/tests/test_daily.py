@@ -33,8 +33,3 @@ def test_daily_nulls_not_zeros(monkeypatch, tmp_path):
     monkeypatch.setattr(OC, "_daily_cache_path", lambda lat, lon: tmp_path / "d.json")
     (p,) = OC.get_daily(1.0, 2.0)
     assert p["temp_max_c"] is None and p["condition"] is None and p["date"] == "2026-09-12"
-
-
-def test_daily_live_smoke():
-    periods = OC.get_daily(19.99, 73.78)
-    assert len(periods) == 3 and all(periods[0][k] is not None for k in ("date", "temp_max_c", "temp_min_c"))

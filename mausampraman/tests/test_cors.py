@@ -25,7 +25,9 @@ def test_disallowed_origin_rejected():
     assert "access-control-allow-origin" not in r.headers
 
 
-def test_local_frontend_to_backend():
+def test_local_frontend_to_backend(monkeypatch):
+    from tests.fixtures import wire_api
+    wire_api(monkeypatch)
     r = c.post("/ask", json={"query": "Weather in Nashik?"}, headers={"Origin": "http://localhost:3000"})
     assert r.status_code == 200 and r.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
