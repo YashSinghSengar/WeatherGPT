@@ -37,11 +37,20 @@ def health():
 @app.post("/ask")
 def ask(body: AskIn):
     lang = body.lang if body.lang in ("en", "hi") else "en"
-    coords = geocode(body.query)
+    place = (body.query or "").strip() or "Unknown"
+    coords = geocode(place)
+    if coords is None:  # ponytail: token fallback, real NLP/NER later
+        for tok in [w.strip("?.,!,;:") for w in place.split()]:
+            if len(tok) < 4:
+                continue
+            hit = geocode(tok)
+            if hit is not None:
+                coords, place = hit, tok
+                break
     if coords is None:
         raise HTTPException(status_code=404, detail="location not found")
     lat, lon = coords
-    location = {"name": (body.query or "").strip() or "Unknown", "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
+    location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
     forecast = get_forecast(lat, lon)
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
     warning = get_warning(district) or {
