@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from data.geocoder import resolve_location
-from data.openmeteo_client import get_divergence_scenario, get_forecast
+from data.openmeteo_client import default_target_date, divergence_scenario_from_models, get_forecast, prevruns_per_model
 from data.warning_store import get_warning
 from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
@@ -105,8 +105,9 @@ def ask(body: AskIn):
         "issued_at": date.today().isoformat(),
         "capture_date": date.today().isoformat(),
     }
-    divergence = get_divergence_scenario(lat, lon)
-    confidence = grade_forecast(forecast, warning, divergence)  # deterministic, LLM never touches
+    per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
+    divergence = divergence_scenario_from_models(lat, lon, per_model)
+    confidence = grade_forecast(forecast, warning, divergence, per_model)  # deterministic, LLM never touches
     advisory = None
     if intent["intent"] == "agriculture_advice":
         crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)

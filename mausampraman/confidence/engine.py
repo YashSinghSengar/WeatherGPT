@@ -1,9 +1,8 @@
 """Deterministic confidence engine. LLM must never override this."""
 import json
 import time
-from datetime import datetime, timedelta, timezone
 
-from data.openmeteo_client import _cache_path, prevruns_per_model
+from data.openmeteo_client import _cache_path, default_target_date, prevruns_per_model
 
 SKILL_PRIOR = {}  # ponytail: empty until verification history exists; lookup recorded only
 HORIZON_DAYS = 2  # ponytail: mirrors forecast_days in openmeteo_client
@@ -43,7 +42,8 @@ def grade(models: dict, warning: dict | None, feed_age_min: float, horizon_days:
     return {"grade": band, "warning_override": False, "spread_mm": spread, "skill_prior": prior, "drivers": drivers}
 
 
-def grade_forecast(forecast: dict, warning: dict, divergence: dict) -> dict:
+def grade_forecast(forecast: dict, warning: dict, divergence: dict, models: dict | None = None) -> dict:
     lat, lon = forecast.get("lat"), forecast.get("lon")
-    day = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-    return grade(prevruns_per_model(lat, lon, day), warning, feed_age_minutes(lat, lon), HORIZON_DAYS)
+    if models is None:  # ponytail: back-compat fetch; pipeline passes models to avoid duplicate call
+        models = prevruns_per_model(lat, lon, default_target_date())
+    return grade(models, warning, feed_age_minutes(lat, lon), HORIZON_DAYS)

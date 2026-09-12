@@ -7,6 +7,11 @@ FORECAST = {"temp_c": 25.0, "humidity_pct": 0, "wind_kph": 0.0, "precip_mm": 3.0
 GREEN = {"district": "nashik", "severity": "green", "headline": "No warning", "body": "", "issued_at": "2026-01-01", "capture_date": "2026-01-01"}
 ORANGE = {**GREEN, "severity": "orange", "headline": "Heavy rainfall likely", "body": "Stay indoors."}
 DIV = {"spread_c": 0}
+PER = {
+    "gfs_seamless": {"temp_c": 25.0, "rain_mm": 2.0},
+    "ecmwf_ifs025": {"temp_c": 26.0, "rain_mm": 10.0},
+    "icon_seamless": {"temp_c": 25.5, "rain_mm": 4.0},
+}
 CONF = {"grade": "B", "warning_override": False, "spread_mm": 6.0, "skill_prior": 0.0, "drivers": {"spread_mm": 6.0}}
 ADV = {"crop": "grape", "stage": "veraison", "rule_id": "r", "advice_en": "Do X.", "advice_hi": "X.", "citation": "c", "strength": "strong", "safe": True}
 
@@ -15,8 +20,8 @@ def _wire(monkeypatch, warning=GREEN, advisory=ADV):
     monkeypatch.setattr(M, "resolve_location", lambda q, loc=None: ("Nashik", 19.99, 73.78))
     monkeypatch.setattr(M, "get_forecast", lambda lat, lon: FORECAST)
     monkeypatch.setattr(M, "get_warning", lambda d: warning)
-    monkeypatch.setattr(M, "get_divergence_scenario", lambda lat, lon: DIV)
-    monkeypatch.setattr(M, "grade_forecast", lambda f, w, d: CONF)
+    monkeypatch.setattr(M, "prevruns_per_model", lambda lat, lon, day: PER)
+    monkeypatch.setattr(M, "grade_forecast", lambda f, w, d, m=None: CONF)
     monkeypatch.setattr(M, "get_advisory", lambda crop, stage, conf: advisory)
 
 

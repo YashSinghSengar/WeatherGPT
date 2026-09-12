@@ -100,10 +100,12 @@ def get_forecast(lat: float, lon: float) -> dict:
         raise DataUnavailable(str(e)) from e
 
 
-def get_divergence_scenario(lat: float, lon: float, target_date: str | None = None) -> dict:
-    if target_date is None:
-        target_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-    per = prevruns_per_model(lat, lon, target_date)
+def default_target_date() -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def divergence_scenario_from_models(lat: float, lon: float, per: dict) -> dict:
+    """Pure collapse of per-model data to forecast shape. No network."""
     temps = [v["temp_c"] for v in per.values()]
     rains = [v["rain_mm"] for v in per.values()]
     temp_c = sum(temps) / len(temps)
@@ -118,6 +120,10 @@ def get_divergence_scenario(lat: float, lon: float, target_date: str | None = No
         "lat": lat,
         "lon": lon,
     }
+
+
+def get_divergence_scenario(lat: float, lon: float, target_date: str | None = None) -> dict:
+    return divergence_scenario_from_models(lat, lon, prevruns_per_model(lat, lon, target_date or default_target_date()))
 
 
 def prevruns_per_model(lat: float, lon: float, date_str: str) -> dict:
