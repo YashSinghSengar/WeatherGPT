@@ -5,12 +5,14 @@ export interface Warning { district: string; severity: string; headline: string;
 export interface Forecast { temp_c: number; humidity_pct: number; wind_kph: number; precip_mm: number; condition: string; source: string; lat: number; lon: number; }
 export interface AskResponse { answer: string; confidence: Confidence; provenance: { forecast_source: string; warning_source: string; grounded: boolean }; advisory: Advisory; location: Location; warning: Warning; forecast: Forecast; }
 
-export async function askBackend(query: string, lang: string): Promise<AskResponse> {
+export interface AskRequest { query: string; language: string; location?: string; crop?: string; stage?: string; }
+
+export async function askBackend(req: AskRequest): Promise<AskResponse> {
   const base = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 90000);
   const url = `${base}/ask`;
-  const body = { query, language: lang };
+  const body = { query: req.query, language: req.language, location: req.location || undefined, crop: req.crop || "grape", stage: req.stage || "veraison" };
   try {
     const r = await fetch(url, {
       method: "POST",

@@ -5,6 +5,8 @@ node_modules/
 data/.cache/*
 !data/.cache/.gitkeep
 .env
+web/tsconfig.tsbuildinfo
+web/.next/
 # Local tracking docs, never commit
 ARCHITECTURE.md
 DECISION.md

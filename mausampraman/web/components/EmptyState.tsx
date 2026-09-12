@@ -1,13 +1,18 @@
 "use client";
-const EXAMPLES = ["Will it rain tonight in Nashik?", "Should I irrigate my grapes today?", "Is there a weather warning for Nashik?", "How confident is the Nashik forecast?"];
+const EXAMPLES: [string, string][] = [
+  ["Bhopal", "Will it rain tonight?"],
+  ["Nashik", "Should I irrigate my grapes today?"],
+  ["Delhi", "What is the temperature?"],
+  ["Mumbai", "Is rain expected?"],
+];
 
-export default function EmptyState({ onPick }: { onPick: (q: string, lang: string) => void }) {
+export default function EmptyState({ onAsk }: { onAsk: (loc: string, q: string) => void }) {
   return (
     <div className="card">
       <h3>What can MausamPraman answer?</h3>
-      <p className="muted">Rain and temperature outlooks, grape advisories, active warnings, and how much to trust each answer — in English or Hindi.</p>
+      <p className="muted">Pick a location and ask — rain outlooks, warnings, forecast trust, and optional grape advisories, in English or Hindi.</p>
       <div className="chips">
-        {EXAMPLES.map((q) => (<button key={q} className="chip" onClick={() => onPick(q, "en")}>{q}</button>))}
+        {EXAMPLES.map(([loc, q]) => (<button key={loc} className="chip" onClick={() => onAsk(loc, q)}>{loc}: {q}</button>))}
       </div>
     </div>
   );

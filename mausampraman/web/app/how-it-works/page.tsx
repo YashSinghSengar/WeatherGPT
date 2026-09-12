@@ -1,21 +1,22 @@
 import GradeBadge from "../../components/GradeBadge";
 
 const STEPS = [
-  ["User query", "A plain question in English or Hindi."],
-  ["Location resolution", "The place name is resolved to coordinates."],
-  ["Weather data", "Current conditions from Open-Meteo, three models."],
-  ["Official warning lookup", "Stored district warnings; orange/red override all."],
-  ["Confidence / trust engine", "Model disagreement becomes a deterministic A–D grade."],
-  ["Grounded advisory rules", "Grape-stage rules matched to the measured spread."],
-  ["LLM phrasing", "AI words the decided answer — nothing more."],
-  ["Final answer", "Answer plus grade, evidence, and sources."],
+  ["Resolve the location", "Place name or explicit selection becomes coordinates."],
+  ["Collect weather data", "Current conditions from Open-Meteo, three models."],
+  ["Check warnings", "Stored district warnings; severe ones override everything."],
+  ["Compare forecast signals", "Yesterday's per-model rain totals become a disagreement spread."],
+  ["Assign confidence", "Spread, data age, and horizon map to a deterministic A–D grade."],
+  ["Apply grounded rules", "Crop-stage rules fire only on measured spread bands."],
+  ["Phrase the result", "A language model words the decided answer under strict validation."],
+  ["Show provenance", "Coordinates, sources, drivers, and citations ship with the answer."],
 ];
 
 export default function HowItWorks() {
   return (
     <>
       <h1>How it works</h1>
-      <div className="notice"><strong>The AI phrases the answer. It does not decide the forecast confidence.</strong> Grades, warnings, and advisories are computed by deterministic code; the language model only chooses words, under strict validation.</div>
+      <div className="notice"><strong>LLM does not decide the weather verdict.</strong> Grades, warnings, and advisories are computed by deterministic code; the language model only chooses words, under strict validation.</div>
+      <div className="notice"><strong>Warnings override normal advice.</strong> An active warning forces grade D, watch-only guidance, and a dominant warning display.</div>
       <ol className="steps">
         {STEPS.map(([t, s]) => (<li key={t}><strong>{t}</strong> — {s}</li>))}
       </ol>
