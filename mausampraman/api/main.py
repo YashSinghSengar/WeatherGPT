@@ -126,7 +126,7 @@ def ask(body: AskIn):
         answer = phrase(advisory, forecast, warning, confidence, location, lang)  # wording only
     else:
         answer = _compose(intent["intent"], location, forecast, warning, confidence)
-    check = ground_check(answer, forecast, warning)
+    check = ground_check(answer, forecast, warning, confidence, advisory, location)
     return {
         "answer": answer,
         "intent": intent,
