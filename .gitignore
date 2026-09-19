@@ -1,0 +1,4 @@
+# Binaries and build output, never commit
+/*.pdf
+/*.pptx
+/mausampraman/web/out/
