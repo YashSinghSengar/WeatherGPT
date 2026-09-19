@@ -64,7 +64,7 @@ def _coords(name: str) -> tuple[float, float]:
 
 def canonical_fake(name: str) -> dict:
     lat, lon = _coords(name)
-    return {"name": name, "latitude": lat, "longitude": lon, "country": "India",
+    return {"display_name": name, "latitude": lat, "longitude": lon, "country": "India",
             "state": STATES.get(name, "Test State"), "district": name, "source": "fixture"}
 
 

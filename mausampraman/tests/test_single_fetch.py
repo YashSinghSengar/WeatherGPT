@@ -18,7 +18,7 @@ def test_single_prevruns_call_per_request(monkeypatch):
     def fake_prevruns(lat, lon, day):
         calls.append((lat, lon, day))
         return PER
-    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"display_name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
     monkeypatch.setattr(M, "get_forecast", lambda lat, lon: FORECAST)
     monkeypatch.setattr(M, "get_warning", lambda d: GREEN)
     monkeypatch.setattr(M, "prevruns_per_model", fake_prevruns)

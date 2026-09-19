@@ -1,16 +1,18 @@
-# Contracts (frozen v14)
+# Contracts (frozen v15)
 
 Solo project. No module owners.
 
 ## Functions
 
 - `geocode(place) -> (lat, lon) tuple | None` (None = no results; `"nashik_coastal_test"` returns Nashik stub coords without network)
-- `get_forecast(lat, lon) -> {temp_c, humidity_pct?|null, wind_kph?|null, precip_mm, precip_prob_pct?|null, weather_code?|null, condition (WMO, precip fallback only if codes missing), observed_at, source, lat, lon}`
+- `get_forecast(lat, lon) -> {temp_c, humidity_pct?|null, wind_kph?|null, precip_mm, precip_prob_pct?|null, weather_code?|null, condition (WMO, precip fallback only if codes missing), observed_at, source, lat, lon}` (projected from canonical via to_legacy_forecast; numbers identical)
 - `save_warning(district, severity, headline, body, issued_at) -> record incl. capture_date, file data/warnings/{district}.json`
 - `get_warning(district) -> record incl. status: active_warning|no_warning_confirmed|warning_data_unavailable|district_not_covered` (green file = confirmed; missing = not covered; unreadable = unavailable)
 - `geocode_in(place) -> (lat, lon) | None` (IN-only, no global fallback)
 - `resolve_location(query, explicit?) -> (name, lat, lon) | None` (explicit wins; else IN tokens minus stopwords; else single-word global)
-- `resolve_canonical(query, explicit?) -> {name, latitude, longitude, country?|null, state?|null, district?|null, source} | None` (same search order as resolve_location; None = unresolvable; never fabricated)
+- `resolve_canonical(query, explicit?) -> {display_name, latitude, longitude, country?|null, state?|null, district?|null, source} | None` (same search order as resolve_location; None = unresolvable; never fabricated; raises ValueError only via canonical_location on missing coords)
+- `get_canonical_weather(lat, lon) -> {location{latitude, longitude}, current{timestamp, temperature, feels_like?|null, humidity?|null, precipitation?|null, precipitation_probability?|null, wind_speed?|null, wind_direction?|null, weather_code?|null}, forecast[{timestamp, temperature?|null, precipitation?|null, precipitation_probability?|null, humidity?|null, wind_speed?|null, wind_direction?|null, weather_code?|null}], source{provider, source, retrieved_at}}` (missing stays null, never zero)
+- `to_legacy_forecast(canonical) -> get_forecast shape` (pure projection, identical numbers)
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`

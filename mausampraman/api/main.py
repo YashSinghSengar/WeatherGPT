@@ -142,7 +142,7 @@ def ask(body: AskIn, response: Response):
         fail(503, "location service temporarily unavailable", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure="geocoder")
     if canon is None:
         fail(404, "could not determine location from query", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure=None)
-    place, lat, lon = canon["name"], canon["latitude"], canon["longitude"]
+    place, lat, lon = canon["display_name"], canon["latitude"], canon["longitude"]
     location = {"name": place, "lat": lat, "lon": lon, "state": canon.get("state") or "Unknown",
                 "country": canon.get("country") or "Unknown", "district": canon.get("district") or place,
                 "source": canon.get("source") or "openmeteo-geocoding"}

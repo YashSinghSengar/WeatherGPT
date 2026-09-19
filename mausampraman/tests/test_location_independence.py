@@ -26,7 +26,7 @@ def _route(place):
 def test_a_supported_city_canonical(monkeypatch):
     monkeypatch.setattr(G, "_search", _route)
     canon = G.resolve_canonical("Will it rain tonight in Nashik?")
-    assert canon["name"] == "Nashik" and canon["latitude"] == 19.9975 and canon["longitude"] == 73.7898
+    assert canon["display_name"] == "Nashik" and canon["latitude"] == 19.9975 and canon["longitude"] == 73.7898
     assert canon["state"] == "Maharashtra" and canon["district"] == "Nashik" and canon["country"] == "India"
     assert canon["source"] == "openmeteo-geocoding"
     assert G.resolve_location("Will it rain tonight in Nashik?")[1:] == (19.9975, 73.7898)
@@ -36,7 +36,7 @@ def test_b_unsupported_city_same_pipeline(monkeypatch):
     assert "Gwalior" not in CITIES
     monkeypatch.setattr(G, "_search", _route)
     canon = G.resolve_canonical("Will it rain in Gwalior?")
-    assert canon["name"] == "Gwalior" and (canon["latitude"], canon["longitude"]) == (26.2183, 78.1828)
+    assert canon["display_name"] == "Gwalior" and (canon["latitude"], canon["longitude"]) == (26.2183, 78.1828)
     assert canon["state"] == "Madhya Pradesh"
 
 

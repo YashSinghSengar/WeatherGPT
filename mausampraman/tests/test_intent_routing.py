@@ -17,7 +17,7 @@ ADV = {"crop": "grape", "stage": "veraison", "rule_id": "r", "advice_en": "Do X.
 
 
 def _wire(monkeypatch, warning=GREEN, advisory=ADV):
-    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"display_name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
     monkeypatch.setattr(M, "get_forecast", lambda lat, lon: FORECAST)
     monkeypatch.setattr(M, "get_warning", lambda d: warning)
     monkeypatch.setattr(M, "prevruns_per_model", lambda lat, lon, day: PER)

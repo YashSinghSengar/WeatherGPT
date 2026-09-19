@@ -3,6 +3,7 @@ import re
 
 import httpx
 
+from .canonical import canonical_location
 from .openmeteo_client import TIMEOUT, DataUnavailable
 
 URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -28,20 +29,17 @@ def _select(results: list, in_only: bool = False) -> dict | None:
 
 def _canonical(res: dict, source: str = "openmeteo-geocoding") -> dict:
     """Canonical location. Admin fields best-effort; lat/lon critical."""
-    return {
-        "name": res.get("name"),
-        "latitude": res.get("latitude"),
-        "longitude": res.get("longitude"),
-        "country": res.get("country"),
-        "state": res.get("admin1"),
-        "district": res.get("admin2") or res.get("admin3") or res.get("name"),
-        "source": source,
-    }
+    return canonical_location(
+        res.get("name"), res.get("latitude"), res.get("longitude"),
+        country=res.get("country"), state=res.get("admin1"),
+        district=res.get("admin2") or res.get("admin3"), source=source,
+    )
 
 
 def _stub_canonical(place_name: str) -> dict:
-    return {"name": place_name.strip(), "latitude": _FALLBACK[0], "longitude": _FALLBACK[1],
-            "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "stub"}
+    return canonical_location(place_name.strip(), _FALLBACK[0], _FALLBACK[1],
+                              country="India", state="Maharashtra",
+                              district="Nashik", source="stub")
 
 
 def _in_hit(results: list) -> tuple[float, float] | None:
