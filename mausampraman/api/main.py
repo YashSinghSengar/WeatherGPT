@@ -18,7 +18,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from data.geocoder import resolve_location
+from data.geocoder import resolve_canonical
 from data.openmeteo_client import DataUnavailable, default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model
 from data.warning_store import STATUS_TEXT, get_warning
 from confidence.engine import grade_forecast
@@ -121,7 +121,7 @@ def ask(body: AskIn, response: Response):
     lang = body.language or body.lang
     lang = lang if lang in ("en", "hi") else "en"
     intent = classify_intent(body.query)
-    if intent["intent"] == "unsupported" and resolve_location(body.query, body.location) is None:
+    if intent["intent"] == "unsupported" and resolve_canonical(body.query, body.location) is None:
         emit(200, intent=intent["intent"], location=None, path="unsupported", grade=None, upstream_failure=None)
         return {
             "answer": "I can help with current weather, rain forecasts, warnings, grape advice, or forecast trust. Please ask about a place.",
@@ -137,13 +137,15 @@ def ask(body: AskIn, response: Response):
     if intent["intent"] == "unsupported":
         intent = {"intent": "weather_current", "confidence": "high", "signals": ["location-only"]}
     try:
-        res = resolve_location(body.query, body.location)
+        canon = resolve_canonical(body.query, body.location)
     except DataUnavailable:
         fail(503, "location service temporarily unavailable", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure="geocoder")
-    if res is None:
+    if canon is None:
         fail(404, "could not determine location from query", intent=intent["intent"], location=None, path="resolve", grade=None, upstream_failure=None)
-    place, lat, lon = res
-    location = {"name": place, "lat": lat, "lon": lon, "state": "Unknown", "country": "Unknown"}
+    place, lat, lon = canon["name"], canon["latitude"], canon["longitude"]
+    location = {"name": place, "lat": lat, "lon": lon, "state": canon.get("state") or "Unknown",
+                "country": canon.get("country") or "Unknown", "district": canon.get("district") or place,
+                "source": canon.get("source") or "openmeteo-geocoding"}
     try:
         forecast = get_forecast(lat, lon)
     except DataUnavailable:

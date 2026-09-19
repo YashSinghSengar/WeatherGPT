@@ -12,7 +12,7 @@ PER = {"gfs_seamless": {"temp_c": 25.0, "rain_mm": 2.0}, "ecmwf_ifs025": {"temp_
 
 
 def _base(monkeypatch):
-    monkeypatch.setattr(M, "resolve_location", lambda q, loc=None: ("Nashik", 19.99, 73.78))
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
     monkeypatch.setattr(M, "get_forecast", lambda lat, lon: FORECAST)
     monkeypatch.setattr(M, "get_warning", lambda d: GREEN)
     monkeypatch.setattr(M, "prevruns_per_model", lambda lat, lon, day: PER)
@@ -22,7 +22,7 @@ def _base(monkeypatch):
 def test_1_geocoder_failure_503(monkeypatch):
     def boom(q, loc=None):
         raise DataUnavailable("geo down")
-    monkeypatch.setattr(M, "resolve_location", boom)
+    monkeypatch.setattr(M, "resolve_canonical", boom)
     r = c.post("/ask", json={"query": "Weather in Nashik?"})
     assert r.status_code == 503 and "location" in r.json()["detail"]
 
