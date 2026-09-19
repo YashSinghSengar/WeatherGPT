@@ -1,4 +1,4 @@
-# Contracts (frozen v16)
+# Contracts (frozen v17)
 
 Solo project. No module owners.
 
@@ -16,6 +16,11 @@ Solo project. No module owners.
 - `provider.get_current/forecast/canonical/model_forecasts/daily(lat, lon[, date])` (OpenMeteoProvider; coords in, canonical out; module delegates keep the same names for callers)
 - `ProviderTimeout/ProviderHTTPError/ProviderMalformed(DataUnavailable)` (structured upstream failures; existing 503/D-degrade paths unchanged)
 - `plan_query(intent) -> {intent, location_required, current_weather, forecast, agreement, warnings, daily, advisory}` (deterministic; unknown intents get the unsupported plan; current+forecast share one provider fetch)
+- `warning_key_for_location(canonical) -> district key` (canonical district else first token; no city cases)
+- `canonical_warning(record, location?) -> {store keys, state, severity (None when unknown), description, location, source, valid_from?|null, valid_until?|null, source_reference?|null}` (state governs safety; unknown never green)
+- `is_active(warning) -> bool` (status/state == active_warning only)
+- `decide_advisory(crop, stage, confidence, warning_state, advisory) -> {status: advisory_available|needs_context|no_matching_rule|blocked_by_warning|insufficient_weather_data|warning_data_unavailable, missing[], advisory?|null}` (pure; never guesses; never overrides warnings)
+- `grade()` override trigger is `active_warning` state (same outcomes; severity alone never overrides)
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`

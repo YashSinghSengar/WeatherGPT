@@ -3,6 +3,7 @@ import json
 import time
 
 from data.openmeteo_client import _cache_path, default_target_date, prevruns_per_model
+from data.warnings import is_active
 
 SKILL_PRIOR = {}  # ponytail: empty until verification history exists; lookup recorded only
 HORIZON_DAYS = 2  # ponytail: mirrors forecast_days in openmeteo_client
@@ -29,7 +30,7 @@ def grade(models: dict, warning: dict | None, feed_age_min: float, horizon_days:
     spread = round(model_spread(models), 1)
     prior = SKILL_PRIOR.get("default", 0.0)
     drivers = {"spread_mm": spread}
-    if warning and warning.get("severity", "green") != "green":
+    if is_active(warning):  # ponytail: state governs, severity alone never overrides
         return {"grade": "D", "warning_override": True, "spread_mm": spread, "skill_prior": prior, "drivers": drivers}
     if spread < 5 and feed_age_min < 90 and horizon_days <= 2:
         band = "A"

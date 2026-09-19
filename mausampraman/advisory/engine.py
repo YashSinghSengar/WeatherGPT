@@ -60,3 +60,21 @@ def get_advisory(crop: str, stage: str, grade: dict) -> dict | None:
             "safe": strength in ("strong", "moderate"),
         }
     return None
+
+
+def decide_advisory(crop: str | None, stage: str | None, confidence: dict | None,
+                    warning_state: str | None, advisory: dict | None) -> dict:
+    """Eligibility + result as structured status. Pure; never guesses, never overrides warnings."""
+    missing = [k for k, v in (("crop", crop), ("stage", stage)) if not v]
+    if missing:
+        return {"status": "needs_context", "missing": missing, "advisory": None}
+    if warning_state == "active_warning":
+        return {"status": "blocked_by_warning", "missing": [], "advisory": None}
+    if warning_state == "warning_data_unavailable":
+        return {"status": "warning_data_unavailable", "missing": [], "advisory": None}
+    spread = ((confidence or {}).get("drivers") or {}).get("spread_mm")
+    if confidence is None or spread is None:
+        return {"status": "insufficient_weather_data", "missing": [], "advisory": None}
+    if advisory is None:
+        return {"status": "no_matching_rule", "missing": [], "advisory": None}
+    return {"status": "advisory_available", "missing": [], "advisory": advisory}

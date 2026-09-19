@@ -21,9 +21,10 @@ sys.path.insert(0, str(ROOT))
 from data.geocoder import resolve_canonical
 from data.provider import DataUnavailable, default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model, provider
 from data.warning_store import STATUS_TEXT, get_warning
+from data.warnings import canonical_warning, is_active, warning_key_for_location
 from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
-from advisory.engine import get_advisory
+from advisory.engine import decide_advisory, get_advisory
 from phrasing.templates import phrase
 from api.intent import classify_intent
 from api.planner import plan_query
@@ -154,19 +155,19 @@ def ask(body: AskIn, response: Response):
             forecast = get_forecast(lat, lon)
         except DataUnavailable:
             fail(503, "weather data temporarily unavailable", intent=intent["intent"], location=place, path="forecast", grade=None, upstream_failure="forecast")
-    district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
+    district = warning_key_for_location(canon)  # ponytail: district key, real district resolve later
     upstream = None
     if plan["warnings"]:
         try:
-            warning = get_warning(district)
+            warning = canonical_warning(get_warning(district), location)
         except Exception:
             upstream = "warning_store"
-            warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
-                       "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
+            warning = canonical_warning({"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
+                       "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}, location)
     else:
         upstream = "warning_store"
-        warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
-                   "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
+        warning = canonical_warning({"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
+                   "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}, location)
     confidence = None
     if plan["agreement"]:
         try:
@@ -175,7 +176,7 @@ def ask(body: AskIn, response: Response):
             confidence = grade_forecast(forecast or {"lat": lat, "lon": lon}, warning, divergence, per_model)  # deterministic, LLM never touches
         except DataUnavailable:
             upstream = "divergence"
-            overridden = warning.get("severity", "green") != "green"
+            overridden = is_active(warning)
             divergence = None
             confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
                           "drivers": {"spread_mm": None}, "reasons": ["divergence-unavailable"] + (["active-warning"] if overridden else [])}
@@ -189,12 +190,17 @@ def ask(body: AskIn, response: Response):
     advisory = None
     if plan["advisory"]:
         crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)
-        if crop is not None and stage is not None:
-            advisory = get_advisory(crop, stage, confidence)
-        if advisory is None:
+        matched = get_advisory(crop, stage, confidence) if crop and stage else None
+        decision = decide_advisory(crop, stage, confidence, warning.get("status"), matched)
+        advisory = decision["advisory"]
+        if decision["status"] != "advisory_available":
+            if decision["status"] == "blocked_by_warning":
+                answer = f"Advisory unavailable while {warning.get('severity')} warning active for {place}."
+            else:
+                answer = f"Specific grounded guidance for {crop or 'this crop'}/{stage or 'this stage'} is unavailable."
             emit(200, intent=intent["intent"], location=place, path="agriculture_advice:unavailable", grade=(confidence or {}).get("grade"), upstream_failure=upstream)
             return {
-                "answer": f"Specific grounded guidance for {crop or 'this crop'}/{stage or 'this stage'} is unavailable.",
+                "answer": answer,
                 "intent": intent,
                 "confidence": confidence,
                 "provenance": {"forecast_source": forecast["source"] if forecast else "none", "warning_source": "warnings-store", "grounded": True},
