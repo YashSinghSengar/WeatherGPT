@@ -39,6 +39,28 @@ class DataUnavailable(Exception):
     pass
 
 
+class ProviderTimeout(DataUnavailable):
+    """Upstream did not answer in time. Never fabricated, never substituted."""
+
+
+class ProviderHTTPError(DataUnavailable):
+    """Upstream answered with HTTP failure."""
+
+
+class ProviderMalformed(DataUnavailable):
+    """Upstream payload could not be parsed."""
+
+
+def _provider_error(e: Exception) -> DataUnavailable:
+    if isinstance(e, httpx.TimeoutException):
+        return ProviderTimeout(str(e))
+    if isinstance(e, httpx.HTTPError):
+        return ProviderHTTPError(str(e))
+    if isinstance(e, (ValueError, KeyError, TypeError, IndexError)):
+        return ProviderMalformed(str(e))
+    return DataUnavailable(str(e))
+
+
 def _current_index(times: list) -> int:
     try:
         now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
@@ -92,7 +114,7 @@ def _fetch_hourly(lat: float, lon: float) -> tuple[dict, list, int]:
     except DataUnavailable:
         raise
     except Exception as e:
-        raise DataUnavailable(str(e)) from e
+        raise _provider_error(e) from e
 
 
 def _at_idx(hourly: dict, var: str, idx: int, cast) -> list:
@@ -127,7 +149,7 @@ def get_canonical_weather(lat: float, lon: float) -> dict:
         tvals = _model_series(hourly, "temperature_2m", m)
         rvals = _model_series(hourly, "rain", m)
         if not tvals or not rvals:
-            raise DataUnavailable(f"missing model {m}")
+            raise ProviderMalformed(f"missing model {m}")
         temps.append(float(tvals[idx]))
         rains.append(sum(float(v) for t, v in zip(times, rvals) if t[:10] == next_day))
     hums = _at_idx(hourly, "relative_humidity_2m", idx, float)
@@ -287,7 +309,7 @@ def get_daily(lat: float, lon: float, days: int = 3) -> list:
     except DataUnavailable:
         raise
     except Exception as e:
-        raise DataUnavailable(str(e)) from e
+        raise _provider_error(e) from e
 
 
 def divergence_scenario_from_models(lat: float, lon: float, per: dict, observed_at: str | None = None) -> dict:
@@ -368,7 +390,7 @@ def prevruns_per_model(lat: float, lon: float, date_str: str) -> dict:
     except DataUnavailable:
         raise
     except Exception as e:
-        raise DataUnavailable(str(e)) from e
+        raise _provider_error(e) from e
 
 
 def _day_mean(hourly: dict, var: str, m: str, times: list, date_str: str) -> float | None:

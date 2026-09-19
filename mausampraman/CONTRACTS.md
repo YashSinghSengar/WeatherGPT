@@ -1,4 +1,4 @@
-# Contracts (frozen v15)
+# Contracts (frozen v16)
 
 Solo project. No module owners.
 
@@ -13,6 +13,9 @@ Solo project. No module owners.
 - `resolve_canonical(query, explicit?) -> {display_name, latitude, longitude, country?|null, state?|null, district?|null, source} | None` (same search order as resolve_location; None = unresolvable; never fabricated; raises ValueError only via canonical_location on missing coords)
 - `get_canonical_weather(lat, lon) -> {location{latitude, longitude}, current{timestamp, temperature, feels_like?|null, humidity?|null, precipitation?|null, precipitation_probability?|null, wind_speed?|null, wind_direction?|null, weather_code?|null}, forecast[{timestamp, temperature?|null, precipitation?|null, precipitation_probability?|null, humidity?|null, wind_speed?|null, wind_direction?|null, weather_code?|null}], source{provider, source, retrieved_at}}` (missing stays null, never zero)
 - `to_legacy_forecast(canonical) -> get_forecast shape` (pure projection, identical numbers)
+- `provider.get_current/forecast/canonical/model_forecasts/daily(lat, lon[, date])` (OpenMeteoProvider; coords in, canonical out; module delegates keep the same names for callers)
+- `ProviderTimeout/ProviderHTTPError/ProviderMalformed(DataUnavailable)` (structured upstream failures; existing 503/D-degrade paths unchanged)
+- `plan_query(intent) -> {intent, location_required, current_weather, forecast, agreement, warnings, daily, advisory}` (deterministic; unknown intents get the unsupported plan; current+forecast share one provider fetch)
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`

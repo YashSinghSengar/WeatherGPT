@@ -19,13 +19,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from data.geocoder import resolve_canonical
-from data.openmeteo_client import DataUnavailable, default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model
+from data.provider import DataUnavailable, default_target_date, divergence_scenario_from_models, get_daily, get_forecast, prevruns_per_model, provider
 from data.warning_store import STATUS_TEXT, get_warning
 from confidence.engine import grade_forecast
 from confidence.grounding import ground_check
 from advisory.engine import get_advisory
 from phrasing.templates import phrase
 from api.intent import classify_intent
+from api.planner import plan_query
 
 app = FastAPI(title="MausamPraman")
 log = logging.getLogger("mausampraman")
@@ -90,7 +91,7 @@ def _warn_state(warning: dict) -> str:
 
 
 def _compose(intent: str, location: dict, forecast: dict, warning: dict, confidence: dict) -> str:
-    sev, grade = _warn_state(warning), confidence.get("grade", "?")
+    sev, grade = _warn_state(warning), (confidence or {}).get("grade", "?")
     wlabel = f"Warning: {sev}" if warning.get("status") == "active_warning" else sev
     if intent == "warning_status":
         return f"{location['name']}: {wlabel}. {warning.get('headline', '')} Agreement {grade}."
@@ -146,45 +147,57 @@ def ask(body: AskIn, response: Response):
     location = {"name": place, "lat": lat, "lon": lon, "state": canon.get("state") or "Unknown",
                 "country": canon.get("country") or "Unknown", "district": canon.get("district") or place,
                 "source": canon.get("source") or "openmeteo-geocoding"}
-    try:
-        forecast = get_forecast(lat, lon)
-    except DataUnavailable:
-        fail(503, "weather data temporarily unavailable", intent=intent["intent"], location=place, path="forecast", grade=None, upstream_failure="forecast")
+    plan = plan_query(intent["intent"])  # deterministic gates below, one shared fetch each
+    forecast = None
+    if plan["current_weather"] or plan["forecast"]:
+        try:
+            forecast = get_forecast(lat, lon)
+        except DataUnavailable:
+            fail(503, "weather data temporarily unavailable", intent=intent["intent"], location=place, path="forecast", grade=None, upstream_failure="forecast")
     district = location["name"].split()[0].lower()  # ponytail: first-token match, real district resolve later
     upstream = None
-    try:
-        warning = get_warning(district)
-    except Exception:
+    if plan["warnings"]:
+        try:
+            warning = get_warning(district)
+        except Exception:
+            upstream = "warning_store"
+            warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
+                       "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
+    else:
         upstream = "warning_store"
         warning = {"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
                    "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}
-    try:
-        per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
-        divergence = divergence_scenario_from_models(lat, lon, per_model)
-        confidence = grade_forecast(forecast, warning, divergence, per_model)  # deterministic, LLM never touches
-    except DataUnavailable:
-        upstream = "divergence"
-        overridden = warning.get("severity", "green") != "green"
-        divergence = None
-        confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
-                      "drivers": {"spread_mm": None}, "reasons": ["divergence-unavailable"] + (["active-warning"] if overridden else [])}
-    try:
-        daily = get_daily(lat, lon)
-    except DataUnavailable:
-        upstream = upstream or "daily"
-        daily = None
+    confidence = None
+    if plan["agreement"]:
+        try:
+            per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
+            divergence = divergence_scenario_from_models(lat, lon, per_model)
+            confidence = grade_forecast(forecast or {"lat": lat, "lon": lon}, warning, divergence, per_model)  # deterministic, LLM never touches
+        except DataUnavailable:
+            upstream = "divergence"
+            overridden = warning.get("severity", "green") != "green"
+            divergence = None
+            confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
+                          "drivers": {"spread_mm": None}, "reasons": ["divergence-unavailable"] + (["active-warning"] if overridden else [])}
+    daily = None
+    if plan["daily"]:
+        try:
+            daily = get_daily(lat, lon)
+        except DataUnavailable:
+            upstream = upstream or "daily"
+            daily = None
     advisory = None
-    if intent["intent"] == "agriculture_advice":
+    if plan["advisory"]:
         crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)
         if crop is not None and stage is not None:
             advisory = get_advisory(crop, stage, confidence)
         if advisory is None:
-            emit(200, intent=intent["intent"], location=place, path="agriculture_advice:unavailable", grade=confidence.get("grade"), upstream_failure=upstream)
+            emit(200, intent=intent["intent"], location=place, path="agriculture_advice:unavailable", grade=(confidence or {}).get("grade"), upstream_failure=upstream)
             return {
                 "answer": f"Specific grounded guidance for {crop or 'this crop'}/{stage or 'this stage'} is unavailable.",
                 "intent": intent,
                 "confidence": confidence,
-                "provenance": {"forecast_source": forecast["source"], "warning_source": "warnings-store", "grounded": True},
+                "provenance": {"forecast_source": forecast["source"] if forecast else "none", "warning_source": "warnings-store", "grounded": True},
                 "advisory": None,
                 "location": location,
                 "warning": warning,
@@ -195,13 +208,13 @@ def ask(body: AskIn, response: Response):
     else:
         answer = _compose(intent["intent"], location, forecast, warning, confidence)
     check = ground_check(answer, forecast, warning, confidence, advisory, location)
-    emit(200, intent=intent["intent"], location=place, path=intent["intent"], grade=confidence.get("grade"), upstream_failure=upstream)
+    emit(200, intent=intent["intent"], location=place, path=intent["intent"], grade=(confidence or {}).get("grade"), upstream_failure=upstream)
     return {
         "answer": answer,
         "intent": intent,
         "confidence": confidence,
         "provenance": {
-            "forecast_source": forecast["source"],
+            "forecast_source": forecast["source"] if forecast else "none",
             "warning_source": "warnings-store",
             "grounded": check["grounded"],
         },
