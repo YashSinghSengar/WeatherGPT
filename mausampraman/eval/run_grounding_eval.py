@@ -18,7 +18,8 @@ def main(path: str | None = None) -> dict:
     tp = fp = tn = fn = 0
     fails = []
     for it in items:
-        r = ground_check(it["draft"], it["forecast"], it["warning"], it.get("confidence"), it.get("advisory"), it.get("location"))
+        r = ground_check(it["draft"], it["forecast"], it["warning"], it.get("confidence"), it.get("advisory"), it.get("location"),
+                         it.get("advisory_status"), it.get("crop"), it.get("stage"))
         exp = it["expected_grounded"]
         if r["grounded"] and exp:
             tp += 1

@@ -110,10 +110,14 @@ def _compose(intent: str, location: dict, forecast: dict, warning: dict, confide
 def ask(body: AskIn, response: Response):
     rid = uuid.uuid4().hex[:12]
     t0 = time.perf_counter()
+    stages: dict[str, float] = {}
+
+    def tick(name: str) -> None:
+        stages[name] = round((time.perf_counter() - t0) * 1000, 1)
 
     def emit(status: int, **kw) -> None:
         rec = {"request_id": rid, "duration_ms": round((time.perf_counter() - t0) * 1000, 1),
-               "status": status, "wording": "template", **kw}
+               "status": status, "wording": "template", "stages": stages, **kw}
         response.headers["X-Request-ID"] = rid
         log.info(json.dumps(rec))
 
@@ -149,13 +153,16 @@ def ask(body: AskIn, response: Response):
     location = {"name": place, "lat": lat, "lon": lon, "state": canon.get("state") or "Unknown",
                 "country": canon.get("country") or "Unknown", "district": canon.get("district") or place,
                 "source": canon.get("source") or "openmeteo-geocoding"}
+    tick("resolve")
     plan = plan_query(intent["intent"])  # deterministic gates below, one shared fetch each
+    tick("intent_plan")
     forecast = None
     if plan["current_weather"] or plan["forecast"]:
         try:
             forecast = get_forecast(lat, lon)
         except DataUnavailable:
             fail(503, "weather data temporarily unavailable", intent=intent["intent"], location=place, path="forecast", grade=None, upstream_failure="forecast")
+    tick("weather")
     district = warning_key_for_location(canon)  # ponytail: district key, real district resolve later
     upstream = None
     if plan["warnings"]:
@@ -169,6 +176,7 @@ def ask(body: AskIn, response: Response):
         upstream = "warning_store"
         warning = canonical_warning({"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
                    "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}, location)
+    tick("warning")
     confidence = None
     per_model = None
     if plan["agreement"]:
@@ -182,6 +190,7 @@ def ask(body: AskIn, response: Response):
             divergence = None
             confidence = {"grade": "D", "warning_override": overridden, "spread_mm": None, "skill_prior": 0.0,
                           "drivers": {"spread_mm": None}, "reasons": ["divergence-unavailable"] + (["active-warning"] if overridden else [])}
+    tick("agreement")
     daily = None
     if plan["daily"]:
         try:
@@ -189,6 +198,7 @@ def ask(body: AskIn, response: Response):
         except DataUnavailable:
             upstream = upstream or "daily"
             daily = None
+    tick("daily")
     advisory = None
     advisory_status = None
     crop = stage = None
@@ -214,14 +224,18 @@ def ask(body: AskIn, response: Response):
                 "warning": warning,
                 "forecast": forecast,
                 "daily": daily,
+                "evidence": build_evidence(location, forecast, per_model, confidence, warning,
+                                           advisory_status, None, crop, stage),
             }
         answer = phrase(advisory, forecast, warning, confidence, location, lang)  # wording only
     else:
         answer = _compose(intent["intent"], location, forecast, warning, confidence)
+    tick("advisory")
     evidence = build_evidence(location, forecast, per_model, confidence, warning,
                               advisory_status, advisory, crop, stage)
     check = ground_check(answer, forecast, warning, confidence, advisory, location,
                          advisory_status, crop, stage)
+    tick("grounding")
     emit(200, intent=intent["intent"], location=place, path=intent["intent"], grade=(confidence or {}).get("grade"), upstream_failure=upstream)
     return {
         "answer": answer,

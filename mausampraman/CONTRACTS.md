@@ -1,4 +1,4 @@
-# Contracts (frozen v18)
+# Contracts (frozen v19)
 
 Solo project. No module owners.
 
@@ -25,6 +25,8 @@ Solo project. No module owners.
 - `ground_check(draft, forecast, warning, confidence?, advisory?, location?, advisory_status?=None, crop?=None, stage?=None) -> {grounded, issues[], checked[]}` (temperature ±0.5 rounding; admin name variants; false-calm fails on unknown warning states; advisory gates only when status passed)
 - `verified_response(generate, fallback, **ground_kwargs) -> {response, grounded, issues[], checked[], fallback_used}` (LLM untrusted; invalid/crash falls back)
 - `POST /ask` gains additive `evidence` object; all existing fields unchanged
+- Request logs carry `request_id`, `duration_ms`, per-stage `stages{}`, intent, path, grade, upstream_failure; never secrets or full query text
+- Eval suites (deterministic, mocked): intent 42, grounding 20, agreement 11, phrasing 10, warnings 8, advisory 9, integration 10; `python eval/run_all.py` aggregates plus pytest
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`
