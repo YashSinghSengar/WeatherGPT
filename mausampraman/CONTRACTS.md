@@ -1,4 +1,4 @@
-# Contracts (frozen v17)
+# Contracts (frozen v18)
 
 Solo project. No module owners.
 
@@ -21,6 +21,10 @@ Solo project. No module owners.
 - `is_active(warning) -> bool` (status/state == active_warning only)
 - `decide_advisory(crop, stage, confidence, warning_state, advisory) -> {status: advisory_available|needs_context|no_matching_rule|blocked_by_warning|insufficient_weather_data|warning_data_unavailable, missing[], advisory?|null}` (pure; never guesses; never overrides warnings)
 - `grade()` override trigger is `active_warning` state (same outcomes; severity alone never overrides)
+- `build_evidence(location, forecast, per_model, confidence, warning, advisory_status, advisory, crop?, stage?) -> {location{display_name, latitude, longitude, state, district}, weather{source, models[], retrieved_at?|null, forecast_time?|null, values{temperature?, precipitation?, precipitation_probability?, humidity?, wind_speed?, weather_code?, condition?}}, agreement{grade?|null, models_considered[], basis}, warning{state?|null, severity?|null, source, headline?, issued_at?|null, valid_until?|null}, advisory{status?|null, rule_id?, source?, citation?, crop?, stage?}}` (pure projection, no external calls, missing stays null)
+- `ground_check(draft, forecast, warning, confidence?, advisory?, location?, advisory_status?=None, crop?=None, stage?=None) -> {grounded, issues[], checked[]}` (temperature ±0.5 rounding; admin name variants; false-calm fails on unknown warning states; advisory gates only when status passed)
+- `verified_response(generate, fallback, **ground_kwargs) -> {response, grounded, issues[], checked[], fallback_used}` (LLM untrusted; invalid/crash falls back)
+- `POST /ask` gains additive `evidence` object; all existing fields unchanged
 - `get_daily(lat, lon, days?=3) -> [{date, temp_max_c?|null, temp_min_c?|null, precip_mm?|null, precip_prob_pct?|null, weather_code?|null, condition?|null}]` (cached, daily API)
 - `get_divergence_scenario(lat, lon, target_date?=yesterday) -> same shape as get_forecast, source openmeteo-prevruns`
 - `divergence_scenario_from_models(lat, lon, per) -> same, pure no-network`

@@ -23,6 +23,7 @@ from data.provider import DataUnavailable, default_target_date, divergence_scena
 from data.warning_store import STATUS_TEXT, get_warning
 from data.warnings import canonical_warning, is_active, warning_key_for_location
 from confidence.engine import grade_forecast
+from confidence.evidence import build_evidence
 from confidence.grounding import ground_check
 from advisory.engine import decide_advisory, get_advisory
 from phrasing.templates import phrase
@@ -169,6 +170,7 @@ def ask(body: AskIn, response: Response):
         warning = canonical_warning({"district": district, "severity": "green", "headline": "Warning status unavailable", "body": "",
                    "issued_at": "", "capture_date": "", "status": "warning_data_unavailable"}, location)
     confidence = None
+    per_model = None
     if plan["agreement"]:
         try:
             per_model = prevruns_per_model(lat, lon, default_target_date())  # single fetch, shared below
@@ -188,10 +190,13 @@ def ask(body: AskIn, response: Response):
             upstream = upstream or "daily"
             daily = None
     advisory = None
+    advisory_status = None
+    crop = stage = None
     if plan["advisory"]:
         crop, stage = _resolve_crop_stage(body.query, body.crop, body.stage)
         matched = get_advisory(crop, stage, confidence) if crop and stage else None
         decision = decide_advisory(crop, stage, confidence, warning.get("status"), matched)
+        advisory_status = decision["status"]
         advisory = decision["advisory"]
         if decision["status"] != "advisory_available":
             if decision["status"] == "blocked_by_warning":
@@ -213,7 +218,10 @@ def ask(body: AskIn, response: Response):
         answer = phrase(advisory, forecast, warning, confidence, location, lang)  # wording only
     else:
         answer = _compose(intent["intent"], location, forecast, warning, confidence)
-    check = ground_check(answer, forecast, warning, confidence, advisory, location)
+    evidence = build_evidence(location, forecast, per_model, confidence, warning,
+                              advisory_status, advisory, crop, stage)
+    check = ground_check(answer, forecast, warning, confidence, advisory, location,
+                         advisory_status, crop, stage)
     emit(200, intent=intent["intent"], location=place, path=intent["intent"], grade=(confidence or {}).get("grade"), upstream_failure=upstream)
     return {
         "answer": answer,
@@ -229,4 +237,5 @@ def ask(body: AskIn, response: Response):
         "warning": warning,
         "forecast": forecast,
         "daily": daily,
+        "evidence": evidence,
     }
