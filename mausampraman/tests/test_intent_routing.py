@@ -17,7 +17,7 @@ ADV = {"crop": "grape", "stage": "veraison", "rule_id": "r", "advice_en": "Do X.
 
 
 def _wire(monkeypatch, warning=GREEN, advisory=ADV):
-    monkeypatch.setattr(M, "resolve_location", lambda q, loc=None: ("Nashik", 19.99, 73.78))
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: {"display_name": "Nashik", "latitude": 19.99, "longitude": 73.78, "country": "India", "state": "Maharashtra", "district": "Nashik", "source": "fixture"})
     monkeypatch.setattr(M, "get_forecast", lambda lat, lon: FORECAST)
     monkeypatch.setattr(M, "get_warning", lambda d: warning)
     monkeypatch.setattr(M, "prevruns_per_model", lambda lat, lon, day: PER)
@@ -63,7 +63,7 @@ def test_opt_in_advisory_null(monkeypatch):
 def test_5_unsupported_skips_pipeline(monkeypatch):
     def boom(lat, lon):
         raise AssertionError("pipeline called")
-    monkeypatch.setattr(M, "resolve_location", lambda q, loc=None: None)
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: None)
     monkeypatch.setattr(M, "get_forecast", boom)
     d = c.post("/ask", json={"query": "Who won the cricket match yesterday?"}).json()
     assert d["advisory"] is None and d["forecast"] is None and "weather" in d["answer"].lower()

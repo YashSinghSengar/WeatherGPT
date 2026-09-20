@@ -3,6 +3,7 @@ import re
 
 import httpx
 
+from .canonical import canonical_location
 from .openmeteo_client import TIMEOUT, DataUnavailable
 
 URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -16,21 +17,42 @@ def _search(place_name: str) -> list:
     return r.json().get("results") or []
 
 
-def _in_hit(results: list) -> tuple[float, float] | None:
+def _select(results: list, in_only: bool = False) -> dict | None:
+    """First IN hit, else first result (unless in_only). Returns raw record."""
     for res in results:
         if res.get("country_code") == "IN":
-            return (res["latitude"], res["longitude"])
-    return None
+            return res
+    if in_only or not results:
+        return None
+    return results[0]
+
+
+def _canonical(res: dict, source: str = "openmeteo-geocoding") -> dict:
+    """Canonical location. Admin fields best-effort; lat/lon critical."""
+    return canonical_location(
+        res.get("name"), res.get("latitude"), res.get("longitude"),
+        country=res.get("country"), state=res.get("admin1"),
+        district=res.get("admin2") or res.get("admin3"), source=source,
+    )
+
+
+def _stub_canonical(place_name: str) -> dict:
+    return canonical_location(place_name.strip(), _FALLBACK[0], _FALLBACK[1],
+                              country="India", state="Maharashtra",
+                              district="Nashik", source="stub")
+
+
+def _in_hit(results: list) -> tuple[float, float] | None:
+    hit = _select(results, in_only=True)
+    return (hit["latitude"], hit["longitude"]) if hit else None
 
 
 def geocode(place_name: str) -> tuple[float, float] | None:
     if (place_name or "").strip().lower() == "nashik_coastal_test":
         return _FALLBACK
     try:
-        results = _search(place_name)
-        if not results:
-            return None
-        return _in_hit(results) or (results[0]["latitude"], results[0]["longitude"])
+        hit = _select(_search(place_name))
+        return (hit["latitude"], hit["longitude"]) if hit else None
     except DataUnavailable:
         raise
     except Exception as e:
@@ -40,7 +62,41 @@ def geocode(place_name: str) -> tuple[float, float] | None:
 def geocode_in(place_name: str) -> tuple[float, float] | None:
     """Coords only for an explicitly Indian match, else None. No global fallback."""
     try:
-        return _in_hit(_search(place_name))
+        hit = _select(_search(place_name), in_only=True)
+        return (hit["latitude"], hit["longitude"]) if hit else None
+    except DataUnavailable:
+        raise
+    except Exception as e:
+        raise DataUnavailable(str(e)) from e
+
+
+def resolve_canonical(query: str | None, explicit: str | None = None) -> dict | None:
+    """Canonical location dict. Same search order as resolve_location; None = unresolvable."""
+    if explicit and explicit.strip():
+        text = explicit.strip()
+        if text.lower() == "nashik_coastal_test":
+            return _stub_canonical(text)
+        try:
+            hit = _select(_search(text), in_only=True) or _select(_search(text))
+        except DataUnavailable:
+            raise
+        except Exception as e:
+            raise DataUnavailable(str(e)) from e
+        return _canonical(hit) if hit else None
+    full = (query or "").strip()
+    if not full:
+        return None
+    if full.lower() == "nashik_coastal_test":
+        return _stub_canonical(full)
+    try:
+        for tok in re.findall(r"[A-Za-z]+", full):
+            if len(tok) < 3 or tok.lower() in STOPWORDS:
+                continue
+            hit = _select(_search(tok), in_only=True)
+            if hit:
+                return _canonical(hit)
+        hit = _select(_search(full))  # last resort: single foreign place, never a sentence fragment
+        return _canonical(hit) if hit and len(full.split()) == 1 else None
     except DataUnavailable:
         raise
     except Exception as e:

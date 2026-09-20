@@ -10,7 +10,8 @@ GOOD = "Nashik: 25.0C, rain. Warning: green. Confidence: A. Advice: Models agree
 
 
 def test_valid_grounded():
-    assert ground_check(GOOD, F, W, C, A, L) == {"grounded": True, "issues": []}
+    assert ground_check(GOOD, F, W, C, A, L) == {"grounded": True, "issues": [],
+                                                "checked": ["numbers", "location", "agreement", "warning"]}
 
 
 def test_correct_value():
@@ -54,4 +55,5 @@ def test_strength_mismatch_and_citation():
 
 def test_unsupported_number_and_empty():
     assert any(i.startswith("ungrounded-number") for i in ground_check("Nashik wind 45.", F, W)["issues"])
-    assert ground_check("", F, W) == {"grounded": False, "issues": ["empty-draft"]}
+    assert ground_check("", F, W) == {"grounded": False, "issues": ["empty-draft"],
+                                        "checked": ["numbers", "location", "agreement", "warning"]}

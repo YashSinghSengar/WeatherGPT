@@ -26,7 +26,7 @@ def test_explicit_location_field(monkeypatch):
 def test_unresolvable_location(monkeypatch):
     import api.main as M
     wire_api(monkeypatch)
-    monkeypatch.setattr(M, "resolve_location", lambda q, loc=None: None)
+    monkeypatch.setattr(M, "resolve_canonical", lambda q, loc=None: None)
     d = c.post("/ask", json={"query": "xqztwkjvblorp zzzqq", "language": "en"}).json()
     assert d["advisory"] is None and d["forecast"] is None and d["location"] is None
 

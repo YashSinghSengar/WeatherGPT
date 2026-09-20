@@ -33,12 +33,18 @@ def main() -> dict:
     from eval.run_grounding_eval import main as grounding_eval
     from eval.run_agreement_eval import main as agreement_eval
     from eval.run_phrasing_eval import main as phrasing_eval
+    from eval.run_warning_eval import main as warning_eval
+    from eval.run_advisory_eval import main as advisory_eval
+    from eval.run_integration_eval import main as integration_eval
     from data.warning_store import get_warning
 
     intent = _quiet(intent_eval)
     grounding = _quiet(grounding_eval)
     agreement = _quiet(agreement_eval)
     phrasing = _quiet(phrasing_eval)
+    warnings = _quiet(warning_eval)
+    advisory = _quiet(advisory_eval)
+    integration = _quiet(integration_eval)
 
     warn = get_warning("nashik_coastal_test")
     overrides = agreement.get("warning_override", [])
@@ -58,6 +64,9 @@ def main() -> dict:
               "grounding": {"precision": grounding["precision"], "recall": grounding["recall"],
                             "false_accepts": grounding["false_accepts"], "false_rejects": grounding["false_rejects"]},
               "agreement": {"distribution": agreement["grade_distribution"], "failures": agreement["failures"]},
+              "warnings": {"passed": warnings["passed"], "n": warnings["n"], "failures": warnings["failures"]},
+              "advisory": {"passed": advisory["passed"], "n": advisory["n"], "failures": advisory["failures"]},
+              "integration": {"passed": integration["passed"], "n": integration["n"], "failures": integration["failures"]},
               "warning_safety": warning_safety,
               "unsupported_query_accuracy": unsupported["intent"],
               "failure_handling": failures,
